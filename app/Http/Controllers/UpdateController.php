@@ -44,7 +44,7 @@ class UpdateController extends Controller
      * Kalau tidak, php-fpm mewarisi environment kosong sehingga npm/composer gagal
      * dengan error file sementara (TAR_ENTRY_ERROR).
      */
-    private function runStep(string $command, string $base, array $env): \Symfony\Component\Process\Process
+    private function runStep(string $command, string $base, array $env): \Illuminate\Process\ProcessResult
     {
         return Process::timeout(900)
             ->path($base)
