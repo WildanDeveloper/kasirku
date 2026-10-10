@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: theme('colors.gray.300');
+        border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: theme('colors.gray.400');
+    }
+}
+
+@layer components {
+    .page-card {
+        @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    }
+    .section-title {
+        @apply text-sm font-semibold text-gray-900;
+    }
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-emerald-500 active:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition;
+    }
+    .btn-secondary {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition;
+    }
+    .btn-danger {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition;
+    }
+    .form-input {
+        @apply block w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500;
+    }
+    .table-th {
+        @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500;
+    }
+    .table-td {
+        @apply px-4 py-3 text-sm;
+    }
+}
+
+/* Struk: hanya area struk yang tercetak */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #receipt, #receipt * {
+        visibility: visible;
+    }
+    #receipt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none !important;
+        border: none !important;
+    }
+}
