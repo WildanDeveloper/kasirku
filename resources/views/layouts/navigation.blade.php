@@ -47,6 +47,34 @@
             <div x-show="open" @click.outside="open = false" x-cloak
                  class="absolute bottom-full left-0 right-0 mb-2 rounded-lg bg-white shadow-xl ring-1 ring-gray-200 py-1 z-50">
                 <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profil</a>
+                <div class="px-4 py-2 border-t border-gray-100"
+                     x-data="appVersion"
+                     data-status-url="{{ route('updates.status') }}"
+                     data-apply-url="{{ route('updates.apply') }}"
+                     data-whats-new-url="{{ route('updates.index') }}"
+                     data-can-update="{{ auth()->user()->is_admin ? '1' : '0' }}">
+                    <div class="flex items-center justify-between gap-2">
+                        <a href="{{ route('updates.index') }}" class="text-xs font-bold text-gray-700 hover:text-emerald-600">
+                            v{{ $appVersion }}
+                        </a>
+                        <span x-show="updateAvailable" x-cloak class="text-[10px] font-bold text-emerald-600">
+                            v<span x-text="latestVersion"></span> tersedia
+                        </span>
+                    </div>
+                    <div class="mt-1 flex items-center gap-1">
+                        <button type="button" x-show="updateAvailable && canUpdate" x-cloak @click="applyUpdate()"
+                                class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-600 text-[11px] font-bold text-white hover:bg-emerald-500 transition">
+                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m0 0 6-6m-6 6-6-6" />
+                            </svg>
+                            Perbarui
+                        </button>
+                        <a href="{{ route('updates.index') }}"
+                           class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-[11px] font-bold text-gray-700 hover:bg-gray-200 transition">
+                            Apa Yang Baru
+                        </a>
+                    </div>
+                </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Keluar</button>
