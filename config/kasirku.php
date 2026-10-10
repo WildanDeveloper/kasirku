@@ -8,7 +8,7 @@ return [
     | Naikkan nomor versi setiap ada rilis baru. Tampilan versi, deteksi
     | update, dan halaman "Apa Yang Baru" membaca nilai dari sini.
     */
-    'version' => '1.4.6',
+    'version' => '1.4.7',
 
     'released_at' => '2026-10-11',
 
@@ -21,6 +21,12 @@ return [
     | Kunci = nomor versi. Dipakai halaman "Apa Yang Baru".
     */
     'changelog' => [
+        '1.4.7' => [
+            'date' => '11 Oktober 2026',
+            'features' => [
+                'Tombol Perbarui kini terverifikasi berjalan penuh dari server (kode, dependensi, aset, database, cache).',
+            ],
+        ],
         '1.4.6' => [
             'date' => '11 Oktober 2026',
             'features' => [
