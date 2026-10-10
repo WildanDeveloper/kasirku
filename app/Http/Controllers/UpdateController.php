@@ -50,13 +50,15 @@ class UpdateController extends Controller
         }
 
         $base = base_path();
+        // Perintah dijalankan lewat bash -lc agar PATH miliknya sama dengan shell server
+        // (npm/composer sering tidak ada di PATH default php-fpm).
         $steps = [
-            'Mengambil kode terbaru' => ['git', 'pull', '--ff-only'],
-            'Memasang dependensi PHP' => ['composer', 'install', '--no-dev', '--optimize-autoloader', '--no-interaction'],
-            'Membangun aset' => ['npm', 'ci', '--silent'],
-            'Membangun aset aplikasi' => ['npm', 'run', 'build'],
-            'Memperbarui database' => ['php', 'artisan', 'migrate', '--force'],
-            'Membersihkan cache' => ['php', 'artisan', 'optimize:clear'],
+            'Mengambil kode terbaru' => 'git pull --ff-only',
+            'Memasang dependensi PHP' => 'COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction',
+            'Memasang aset frontend' => 'npm ci',
+            'Membangun aset aplikasi' => 'npm run build',
+            'Memperbarui database' => 'php artisan migrate --force',
+            'Membersihkan cache' => 'php artisan optimize:clear',
         ];
 
         $log = [];
