@@ -52,6 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Versi aplikasi & pembaruan.
     Route::get('/updates', [UpdateController::class, 'whatsNew'])->name('updates.index');
     Route::get('/updates/status', [UpdateController::class, 'status'])->name('updates.status');
+    Route::post('/updates/refresh', [UpdateController::class, 'refresh'])->name('updates.refresh');
     Route::post('/updates/apply', [UpdateController::class, 'apply'])->name('updates.apply');
 
     // Cek kode voucher dipakai kasir di halaman POS (BUG-16).

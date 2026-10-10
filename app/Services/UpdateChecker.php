@@ -13,7 +13,7 @@ class UpdateChecker
 {
     private const CACHE_KEY = 'kasirku:latest_version';
 
-    private const CACHE_MINUTES = 360;
+    private const CACHE_MINUTES = 15;
 
     public function currentVersion(): string
     {
