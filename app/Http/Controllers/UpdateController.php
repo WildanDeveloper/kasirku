@@ -96,7 +96,12 @@ class UpdateController extends Controller
 
         $log = [];
 
-        $permissionIssues = $this->permissionIssues();
+        try {
+            $permissionIssues = $this->permissionIssues();
+        } catch (\Throwable $e) {
+            // Pemeriksaan izin tidak boleh menggagalkan pembaruan.
+            $permissionIssues = [];
+        }
 
         if ($permissionIssues !== []) {
             return view('updates.result', [
