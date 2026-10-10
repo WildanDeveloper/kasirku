@@ -102,7 +102,7 @@ class UpdateController extends Controller
                     'ok' => false,
                     'output' => 'Ada file milik user lain yang tidak bisa diubah user web (www-data): '
                         .implode(', ', array_slice($permissionIssues, 0, 5))
-                        .'\nJalankan: chown -R www-data:www-data '.base_path(),
+                        ."\nJalankan: chown -R www-data:www-data ".base_path(),
                 ]],
                 'currentVersion' => $this->checker->currentVersion(),
                 'latestVersion' => $this->checker->latestVersion(),
