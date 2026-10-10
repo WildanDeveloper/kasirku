@@ -36,6 +36,24 @@ Login bawaan dari seeder:
 - Email: `admin@kasirku.test`
 - Password: `password`
 
+## Keamanan
+
+- `APP_DEBUG=false` di produksi (lihat `.env.example`)
+- Header keamanan dipasang di level nginx untuk domain HTTPS:
+
+| Header | Nilai |
+|---|---|
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `SAMEORIGIN` (anti clickjacking) |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | kamera hanya untuk origin sendiri (dipakai fitus scan barcode) |
+| `Content-Security-Policy` | `default-src 'self'`, tanpa object/frame eksternal |
+
+CSP memakai `unsafe-eval` karena Alpine.js mengeksekusi expression, dan `unsafe-inline`
+untuk script/style inline di halaman. Untuk CSP ketat, Alpine bisa diganti ke build
+CSP-safe (`@alpinejs/csp`) plus nonce.
+
 ## Struktur Database
 
 | Tabel | Fungsi |
