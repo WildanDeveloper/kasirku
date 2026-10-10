@@ -37,6 +37,36 @@ class UpdateController extends Controller
         ])->header('Cache-Control', 'no-store');
     }
 
+    /** Daftar path yang bukan milik user web (penyebab umum update gagal). */
+    private function permissionIssues(): array
+    {
+        $issues = [];
+
+        foreach (['.git', 'node_modules', 'vendor', 'storage'] as $folder) {
+            $path = base_path($folder);
+
+            if (! is_dir($path)) {
+                continue;
+            }
+
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)
+            );
+
+            foreach ($iterator as $file) {
+                if ($file->getOwner() !== 'www-data') {
+                    $issues[] = $folder.'/'.trim(str_replace(base_path(), '', $file->getPathname()), '/');
+
+                    if (count($issues) >= 6) {
+                        return $issues;
+                    }
+                }
+            }
+        }
+
+        return $issues;
+    }
+
     /**
      * Jalankan pembaruan: git pull + composer + build + migrate.
      * Hanya admin, dan hasil tiap langkah ditampilkan apa adanya.
@@ -62,6 +92,22 @@ class UpdateController extends Controller
         ];
 
         $log = [];
+
+        $permissionIssues = $this->permissionIssues();
+
+        if ($permissionIssues !== []) {
+            return view('updates.result', [
+                'log' => [[
+                    'step' => 'Pemeriksaan izin folder',
+                    'ok' => false,
+                    'output' => 'Ada file milik user lain yang tidak bisa diubah user web (www-data): '
+                        .implode(', ', array_slice($permissionIssues, 0, 5))
+                        .'\nJalankan: chown -R www-data:www-data '.base_path(),
+                ]],
+                'currentVersion' => $this->checker->currentVersion(),
+                'latestVersion' => $this->checker->latestVersion(),
+            ]);
+        }
 
         foreach ($steps as $label => $command) {
             $result = Process::timeout(600)->path($base)->run($command);
