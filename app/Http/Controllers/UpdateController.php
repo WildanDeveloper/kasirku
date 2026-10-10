@@ -37,6 +37,21 @@ class UpdateController extends Controller
         ])->header('Cache-Control', 'no-store');
     }
 
+    /**
+     * Jalankan satu langkah pembaruan.
+     *
+     * Penting: perintah dijalankan lewat `bash -lc` dengan HOME/PATH yang eksplisit.
+     * Kalau tidak, php-fpm mewarisi environment kosong sehingga npm/composer gagal
+     * dengan error file sementara (TAR_ENTRY_ERROR).
+     */
+    private function runStep(string $command, string $base, array $env): \Symfony\Component\Process\Process
+    {
+        return Process::timeout(900)
+            ->path($base)
+            ->env($env)
+            ->run(['bash', '-lc', $command]);
+    }
+
     /** Daftar path yang bukan milik user web (penyebab umum update gagal). */
     private function permissionIssues(): array
     {
@@ -93,6 +108,16 @@ class UpdateController extends Controller
         $base = base_path();
         // Perintah dijalankan lewat bash -lc agar PATH miliknya sama dengan shell server
         // (npm/composer sering tidak ada di PATH default php-fpm).
+        // Process berjalan sebagai user web (www-data): butuh HOME, cache, dan git config sendiri.
+        $env = [
+            'HOME' => storage_path('app'),
+            'COMPOSER_HOME' => storage_path('app/composer'),
+            'COMPOSER_ALLOW_SUPERUSER' => '1',
+            'NPM_CONFIG_CACHE' => storage_path('app/npm-cache'),
+            'GIT_TERMINAL_PROMPT' => '0',
+            'GIT_CONFIG_GLOBAL' => storage_path('app/gitconfig'),
+        ];
+
         $steps = [
             'Mengambil kode terbaru' => 'git pull --ff-only',
             'Memasang dependensi PHP' => 'COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction',
@@ -126,7 +151,12 @@ class UpdateController extends Controller
         }
 
         foreach ($steps as $label => $command) {
-            $result = Process::timeout(600)->path($base)->run($command);
+            $result = $this->runStep($command, $base, $env);
+
+            // npm kadang gagal sesaat (TAR_ENTRY_ERROR); coba sekali lagi.
+            if (! $result->successful() && str_starts_with($command, 'npm ')) {
+                $result = $this->runStep($command, $base, $env);
+            }
 
             $output = trim($result->output().' '.$result->errorOutput());
 
@@ -135,6 +165,12 @@ class UpdateController extends Controller
                 'ok' => $result->successful(),
                 'output' => $output,
             ];
+
+            \Illuminate\Support\Facades\File::ensureDirectoryExists(storage_path('app/logs'));
+            \Illuminate\Support\Facades\File::put(
+                storage_path('app/logs/update-'.\Illuminate\Support\Str::slug($label).'.log'),
+                $output
+            );
 
             // Simpan detail tiap langkah ke log server untuk memudahkan diagnosa.
             \Illuminate\Support\Facades\Log::info('Pembaruan ['.$label.'] exit='.$result->exitCode(), [
