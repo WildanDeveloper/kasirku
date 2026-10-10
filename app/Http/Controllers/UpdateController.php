@@ -55,8 +55,9 @@ class UpdateController extends Controller
             );
 
             foreach ($iterator as $file) {
-                // Bandingkan UID: getOwner() mengembalikan nama atau nomor, tergantung filesystem.
-                if ((int) $file->getUid() !== (int) $currentUid) {
+                // Bandingkan UID lewat fileowner(); SplFileInfo::getOwner() bisa
+                // mengembalikan nama user, sedangkan yang reliable adalah UID.
+                if ((int) @fileowner($file->getPathname()) !== (int) $currentUid) {
                     $issues[] = $folder.'/'.trim(str_replace(base_path(), '', $file->getPathname()), '/');
 
                     if (count($issues) >= 6) {

@@ -8,7 +8,7 @@ return [
     | Naikkan nomor versi setiap ada rilis baru. Tampilan versi, deteksi
     | update, dan halaman "Apa Yang Baru" membaca nilai dari sini.
     */
-    'version' => '1.4.7',
+    'version' => '1.4.8',
 
     'released_at' => '2026-10-11',
 
