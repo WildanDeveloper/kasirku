@@ -70,6 +70,14 @@ class UpdateController extends Controller
         return $issues;
     }
 
+    /** Cek ulang ke GitHub (abaikan cache). */
+    public function refresh()
+    {
+        $this->checker->forget();
+
+        return back()->with('success', 'Status versi terbaru dicek ulang.');
+    }
+
     /**
      * Jalankan pembaruan: git pull + composer + build + migrate.
      * Hanya admin, dan hasil tiap langkah ditampilkan apa adanya.

@@ -26,6 +26,10 @@
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <form method="POST" action="{{ route('updates.refresh') }}">
+                        @csrf
+                        <button class="btn-secondary">Cek Versi Sekarang</button>
+                    </form>
                     <a href="{{ $repository }}" target="_blank" rel="noopener" class="btn-secondary">Kode Sumber</a>
                     @if (auth()->user()->is_admin && $updateAvailable)
                         <form method="POST" action="{{ route('updates.apply') }}"
