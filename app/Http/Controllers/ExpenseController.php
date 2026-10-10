@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
@@ -32,7 +33,9 @@ class ExpenseController extends Controller
             'spent_at' => ['required', 'date'],
         ]);
 
-        Expense::create($data + ['user_id' => $request->user()->id]);
+        $expense = Expense::create($data + ['user_id' => $request->user()->id]);
+
+        ActivityLogger::record('expense.created', 'Pengeluaran '.$expense->description.' Rp '.number_format($expense->amount, 0, ',', '.'), $expense);
 
         return back()->with('success', 'Pengeluaran dicatat.');
     }

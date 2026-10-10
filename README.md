@@ -117,6 +117,7 @@ php artisan test
 | `expenses` | Pengeluaran toko |
 | `settings` | Identitas toko, pajak, footer struk |
 | `sale_returns` / `sale_return_items` | Retur penjualan |
+| `activity_logs` | Log aktivitas (audit trail) |
 
 ## Kontribusi
 
@@ -125,3 +126,51 @@ PR terbuka. Untuk perubahan besar, buka issue dulu supaya bisa didiskusikan.
 ## Lisensi
 
 [MIT](LICENSE.md)
+
+## Perangkat Kasir
+
+### Scanner barcode USB / Bluetooth
+
+Scanner barcode USB/Bluetooth bekerja sebagai papan ketik (HID) dan **tidak perlu
+konfigurasi khusus** — aplikasi sudah memfokuskan di kotak pencarian:
+
+1. Pasang scanner ke komputer/tablet (USB atau Bluetooth).
+2. Atur suffix scanner jadi **Enter** (default sebagian besar sudah).
+3. Di halaman **Kasir**, arahkan scanner ke barcode → produk langsung masuk keranjang.
+
+Scanner bisa juga memakai kamera HP lewat tombol **Scan** (butuh izin kamera).
+
+### Printer struk thermal 58/80 mm
+
+Menu **Pengaturan → Lebar Struk**:
+
+| Lebar | Ukuran kertas | Ukuran font saat cetak |
+|---|---|---|
+| `58` | 58 mm | 11 px monospace, margin 4 mm |
+| `80` | 80 mm | 11 px monospace, margin 4 mm |
+| `a4` | A4 penuh | seperti halaman web |
+
+Aktifkan **Cetak struk otomatis** agar struk langsung tercetak setelah transaksi.
+Ukuran kertas diterapkan hanya saat dialog cetak dibuka, jadi halaman lain tetap
+normal. Gunakan dialog print browser (Chrome: *Destination → Save as PDF* kalau
+ingin cetak ke PDF).
+
+## Backup Database
+
+Menu **Pengaturan → Backup Database** (khusus admin):
+
+- **Backup Sekarang** — menyalin `database.sqlite` ke `storage/app/backups`
+- **Unduh** / **Hapus** file backup
+- **Pulihkan** dari file `.sqlite` (backup kondisi saat ini dibuat otomatis lebih dulu)
+
+Backup harian otomatis lewat cron:
+
+```
+0 2 * * * cd /var/www/kasirku && php artisan kasirku:backup --keep=14 >/dev/null 2>&1
+```
+
+## Log Aktivitas
+
+Menu **Log Aktivitas** mencatat siapa mengubah apa dan kapan: produk & harga, stok,
+pelanggan (termasuk harga khusus), voucher, pengeluaran, pengaturan toko, pengguna,
+retur, pembayaran utang, shift kas, dan backup database.

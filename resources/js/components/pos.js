@@ -26,6 +26,7 @@ export default function pos() {
         message: '',
         success: false,
         receiptUrl: '',
+        heldNote: '',
         voucherCode: '',
         voucherName: '',
         voucherDiscount: 0,
@@ -157,7 +158,7 @@ export default function pos() {
             if (product) {
                 this.add(product);
                 this.search = '';
-                this.$refs.search?.focus();
+                this.focusScanner();
             }
         },
 
@@ -166,10 +167,17 @@ export default function pos() {
 
             if (product) {
                 this.add(product);
+                this.focusScanner();
+
                 return true;
             }
 
             return false;
+        },
+
+        /** Fokuskan lagi kotak pencarian supaya scanner USB siap untuk scan berikutnya. */
+        focusScanner() {
+            setTimeout(() => this.$refs.search?.focus(), 50);
         },
 
         inc(item) {
@@ -283,6 +291,7 @@ export default function pos() {
                     items: this.cart.map((i) => ({ product_id: i.id, quantity: i.quantity })),
                     discount: this.discount,
                     customer_id: this.customerId || null,
+                    note: this.heldNote || null,
                 }),
             });
 
@@ -295,12 +304,13 @@ export default function pos() {
                 items: this.cart.map((i) => ({ product_id: i.id, quantity: i.quantity })),
                 discount: this.discount,
                 customer_id: this.customerId || null,
-                note: null,
+                note: this.heldNote || null,
             });
 
             this.cart = [];
             this.discountInput = 0;
             this.customerId = '';
+            this.heldNote = '';
         },
 
         resumeHeld(held) {
@@ -318,6 +328,7 @@ export default function pos() {
 
             this.discountInput = held.discount || 0;
             this.customerId = held.customer_id || '';
+            this.heldNote = held.note || '';
             this.heldSales = this.heldSales.filter((h) => h.id !== held.id);
 
             fetch(this.holdUrlFor(held), {

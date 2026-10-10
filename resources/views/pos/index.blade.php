@@ -51,6 +51,7 @@
                            @keydown.enter.prevent="addFromSearch()"
                            class="w-full rounded-lg border-gray-300 pl-11 pr-24 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500" autofocus>
                     <button type="button" @click="startScanner()"
+                            title="Scan dengan kamera HP (untuk scanner USB/Bluetooth cukup ketik barcode + Enter)"
                             class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5V5.25A1.5 1.5 0 0 1 5.25 3.75H7.5M2.25 12h1.5m-1.5 4.5h1.5m1.5-12h1.5m6 0H15m3.75 3.75H21m-3.75 6H21m-9.75 3.75H9.75M6 18.75h.008v.008H6v-.008Zm0-4.5h.008v.008H6v-.008Zm3 4.5h.008v.008H9v-.008Zm0-4.5h.008v.008H9v-.008Zm3 4.5h.008v.008H12v-.008Zm0-4.5h.008v.008H12v-.008Zm3 4.5h.008v.008H15v-.008Zm0-4.5h.008v.008H15v-.008ZM16.5 3.75h2.25A1.5 1.5 0 0 1 20.25 5.25v2.25m0 9v2.25a1.5 1.5 0 0 1-1.5 1.5h-2.25M3.75 18.75H5.25A1.5 1.5 0 0 0 6.75 17.25V15" />
@@ -165,6 +166,9 @@
                         <span class="text-gray-500">Voucher <span x-text="voucherName"></span></span>
                         <span class="font-semibold text-emerald-600">- <span x-text="format(voucherDiscount)"></span></span>
                     </div>
+
+                    <input type="text" x-model="heldNote" placeholder="Catatan transaksi ditahan (opsional)"
+                           class="form-input">
 
                     <div class="grid grid-cols-2 gap-2">
                         <input type="number" min="0" x-model.number="discountInput" placeholder="Diskon (Rp)"

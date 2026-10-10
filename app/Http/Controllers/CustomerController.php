@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\CustomerPrice;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
@@ -51,7 +52,9 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        Customer::create($this->validated($request));
+        $customer = Customer::create($this->validated($request));
+
+        ActivityLogger::record('customer.created', 'Menambah pelanggan '.$customer->name, $customer);
 
         return back()->with('success', 'Pelanggan ditambahkan.');
     }
@@ -60,11 +63,15 @@ class CustomerController extends Controller
     {
         $customer->update($this->validated($request, $customer));
 
+        ActivityLogger::record('customer.updated', 'Mengubah pelanggan '.$customer->name, $customer);
+
         return back()->with('success', 'Pelanggan diperbarui.');
     }
 
     public function destroy(Customer $customer)
     {
+        ActivityLogger::record('customer.deleted', 'Menghapus pelanggan '.$customer->name, $customer);
+
         $customer->delete();
 
         return back()->with('success', 'Pelanggan dihapus.');

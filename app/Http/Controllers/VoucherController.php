@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Voucher;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -17,7 +18,9 @@ class VoucherController extends Controller
 
     public function store(Request $request)
     {
-        Voucher::create($this->validated($request));
+        $voucher = Voucher::create($this->validated($request));
+
+        ActivityLogger::record('voucher.created', 'Membuat voucher '.$voucher->code, $voucher);
 
         return back()->with('success', 'Voucher dibuat.');
     }
@@ -26,11 +29,15 @@ class VoucherController extends Controller
     {
         $voucher->update($this->validated($request, $voucher));
 
+        ActivityLogger::record('voucher.updated', 'Memperbarui voucher '.$voucher->code, $voucher);
+
         return back()->with('success', 'Voucher diperbarui.');
     }
 
     public function destroy(Voucher $voucher)
     {
+        ActivityLogger::record('voucher.deleted', 'Menghapus voucher '.$voucher->code, $voucher);
+
         $voucher->delete();
 
         return back()->with('success', 'Voucher dihapus.');

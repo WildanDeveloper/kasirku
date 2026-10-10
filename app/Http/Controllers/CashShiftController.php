@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CashShift;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class CashShiftController extends Controller
@@ -34,6 +35,8 @@ class CashShiftController extends Controller
             'opened_at' => now(),
         ]);
 
+        ActivityLogger::record('shift.opened', 'Membuka shift dengan modal Rp '.number_format($request->opening_balance, 0, ',', '.'));
+
         return back()->with('success', 'Shift dibuka.');
     }
 
@@ -55,6 +58,8 @@ class CashShiftController extends Controller
         ]);
 
         $diff = $data['closing_balance'] - $shift->expected_balance;
+
+        ActivityLogger::record('shift.closed', 'Menutup shift. Selisih kas Rp '.number_format($diff, 0, ',', '.'), $shift);
 
         return back()->with(
             $diff === 0 ? 'success' : 'warning',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
@@ -27,7 +28,9 @@ class UserController extends Controller
         $data = $this->validated($request);
         $data['password'] = Hash::make($data['password']);
 
-        User::create($data);
+        $user = User::create($data);
+
+        ActivityLogger::record('user.created', 'Membuat user '.$user->name.' ('.$user->email.')', $user);
 
         return back()->with('success', 'User dibuat.');
     }
@@ -52,6 +55,8 @@ class UserController extends Controller
 
         $user->update($data);
 
+        ActivityLogger::record('user.updated', 'Memperbarui user '.$user->name, $user);
+
         return back()->with('success', 'User diperbarui.');
     }
 
@@ -59,6 +64,8 @@ class UserController extends Controller
     {
         abort_if($user->is($request->user()), 422, 'Tidak bisa menghapus akun sendiri.');
         abort_if($user->isAdmin() && User::where('is_admin', true)->count() <= 1, 422, 'Minimal harus ada satu admin.');
+
+        ActivityLogger::record('user.deleted', 'Menghapus user '.$user->name, $user);
 
         $user->delete();
 

@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /**
@@ -740,5 +741,97 @@ class DomainTest extends TestCase
         ])->assertNotFound();
 
         $this->assertDatabaseMissing('users', ['email' => 'penyusup@kasirku.test']);
+    }
+
+    // ------------------------------------------------------------------
+    // Log aktivitas, backup, dan perangkat kasir
+    // ------------------------------------------------------------------
+
+    public function test_perubahan_produk_tercatat_di_log_aktivitas(): void
+    {
+        $product = $this->product(['name' => 'Produk Dilog']);
+
+        $this->actingAs($this->admin)->put(route('products.update', $product), [
+            'name' => $product->name,
+            'barcode' => $product->barcode,
+            'cost_price' => $product->cost_price,
+            'selling_price' => 9900,
+            'stock' => $product->stock,
+            'min_stock' => 5,
+            'unit' => 'pcs',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'product.updated',
+            'user_id' => $this->admin->id,
+        ]);
+
+        $this->actingAs($this->admin)->get(route('activity.index'))->assertOk();
+    }
+
+    public function test_kasir_tidak_bisa_membuka_log_aktivitas(): void
+    {
+        $this->actingAs($this->kasir)->get(route('activity.index'))->assertForbidden();
+    }
+
+    public function test_backup_dibuat_dan_tersimpan(): void
+    {
+        // Database sumber dummy (karena test memakai SQLite in-memory).
+        $source = tempnam(sys_get_temp_dir(), 'src').'.sqlite';
+        file_put_contents($source, 'SQLite format 3'."\0".str_repeat('\0', 100));
+
+        $this->artisan('kasirku:backup', ['--path' => $source])->assertSuccessful();
+
+        $files = glob(storage_path('app/backups/kasirku-*.sqlite'));
+
+        $this->assertNotEmpty($files, 'Backup harus dibuat.');
+        $this->assertSame('SQLite format 3', substr((string) file_get_contents($files[0]), 0, 15));
+
+        unlink($source);
+        $name = basename($files[0]);
+
+        $this->actingAs($this->admin)
+            ->get(route('settings.backup.download', $name))
+            ->assertOk();
+
+        $this->actingAs($this->admin)
+            ->get(route('settings.backup.download', '../../database/database.sqlite'))
+            ->assertNotFound();
+
+        $this->actingAs($this->admin)
+            ->delete(route('settings.backup.destroy', $name))
+            ->assertRedirect();
+    }
+
+    public function test_pemulihan_backup_menolak_file_bukan_sqlite(): void
+    {
+        $fake = UploadedFile::fake()->createWithContent('rusak.sqlite', 'ini bukan database sqlite');
+
+        $this->actingAs($this->admin)
+            ->post(route('settings.backup.restore'), ['file' => $fake])
+            ->assertRedirect()
+            ->assertSessionHas('warning');
+
+        $this->assertSame(0, \App\Models\ActivityLog::where('action', 'backup.restored')->count(),
+            'Restore gagal tidak boleh tercatat sebagai berhasil.');
+    }
+
+    public function test_pengaturan_menyimpan_ukuran_printer(): void
+    {
+        $this->actingAs($this->admin)->put(route('settings.update'), [
+            'store_name' => 'Toko Uji',
+            'tax_percent' => '0',
+            'printer_width' => '80',
+            'printer_auto_print' => '1',
+        ])->assertRedirect();
+
+        $this->assertSame('80', \App\Models\Setting::get('printer_width'));
+        $this->assertSame('1', \App\Models\Setting::get('printer_auto_print'));
+
+        // Nilai tidak valid ditolak.
+        $this->actingAs($this->admin)->put(route('settings.update'), [
+            'store_name' => 'Toko Uji',
+            'printer_width' => 'salah',
+        ])->assertSessionHasErrors('printer_width');
     }
 }

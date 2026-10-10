@@ -6,7 +6,7 @@
     <title>Label Harga — {{ $shop['name'] }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="label-print bg-white font-sans" x-data="printable" data-autoprint="1">
+<body class="label-print bg-white font-sans" x-data="printable" data-autoprint="1" data-paper="a4">
     <div class="max-w-5xl mx-auto">
         <div class="flex items-center justify-between mb-4 print:hidden">
             <div>

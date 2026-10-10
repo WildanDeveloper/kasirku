@@ -23,6 +23,8 @@ class Setting extends Model
         'store_phone' => '',
         'receipt_footer' => 'Terima kasih telah berbelanja!',
         'tax_percent' => '0',
+        'printer_width' => '58',
+        'printer_auto_print' => '0',
     ];
 
     public static function get(string $key): string

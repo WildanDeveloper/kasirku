@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\CashShiftController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -84,12 +86,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/vouchers/{voucher}', [VoucherController::class, 'update'])->name('vouchers.update');
         Route::delete('/vouchers/{voucher}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
 
+        Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
+
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
+        Route::get('/settings/backup', [BackupController::class, 'index'])->name('settings.backup.index');
+        Route::post('/settings/backup', [BackupController::class, 'store'])->name('settings.backup.store');
+        Route::post('/settings/backup/restore', [BackupController::class, 'restore'])->name('settings.backup.restore');
+        Route::get('/settings/backup/{filename}', [BackupController::class, 'download'])->name('settings.backup.download');
+        Route::delete('/settings/backup/{filename}', [BackupController::class, 'destroy'])->name('settings.backup.destroy');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
     });
 

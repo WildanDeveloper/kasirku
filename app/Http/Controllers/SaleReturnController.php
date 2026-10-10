@@ -9,6 +9,7 @@ use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 
 class SaleReturnController extends Controller
@@ -130,6 +131,8 @@ class SaleReturnController extends Controller
         if ($return->debt_reduction > 0) {
             $message = 'Retur tersimpan & mengurangi utang Rp '.number_format($return->debt_reduction, 0, ',', '.').'.';
         }
+
+        ActivityLogger::record('sale.returned', $message, $sale, ['nilai' => $total, 'metode' => $data['refund_method']]);
 
         return redirect()->route('sales.show', $sale)->with('success', $message);
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Sale;
 use App\Models\SalePayment;
 use Illuminate\Http\Request;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 
 class SaleController extends Controller
@@ -60,6 +61,8 @@ class SaleController extends Controller
                 $sale->update(['settled_at' => now()]);
             }
         });
+
+        ActivityLogger::record('sale.paid', 'Bayar utang '.$sale->invoice_number.' sebesar Rp '.number_format($amount, 0, ',', '.'), $sale);
 
         return back()->with('success', 'Pembayaran utang dicatat: Rp '.number_format($amount, 0, ',', '.').'.');
     }

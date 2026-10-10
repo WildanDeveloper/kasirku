@@ -46,8 +46,24 @@ export function printable() {
             }
         },
 
+        /** Ukuran kertas thermal 58/80mm diterapkan hanya saat mencetak. */
+        applyPaperSize() {
+            const paper = this.$root.dataset.paper || '58';
+
+            document.body.classList.add('print-receipt', 'receipt-' + paper);
+        },
+
+        clearPaperSize() {
+            document.body.classList.remove('print-receipt', 'receipt-58', 'receipt-80', 'receipt-a4');
+        },
+
         printPage() {
+            this.applyPaperSize();
             window.print();
+
+            // Bersihkan setelah dialog cetak ditutup.
+            setTimeout(() => this.clearPaperSize(), 500);
+            window.addEventListener('afterprint', () => this.clearPaperSize(), { once: true });
         },
     };
 }

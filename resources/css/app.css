@@ -100,3 +100,33 @@
         border: none !important;
     }
 }
+
+/* ------------------------------------------------------------------
+   Struk printer thermal: 58mm / 80mm (semua yang lain disembunyikan)
+   ------------------------------------------------------------------ */
+@page {
+    margin: 4mm;
+}
+
+@media print {
+    body.print-receipt * {
+        visibility: hidden;
+    }
+    body.print-receipt #receipt,
+    body.print-receipt #receipt * {
+        visibility: visible;
+    }
+    body.print-receipt #receipt {
+        position: absolute;
+        inset: 0 auto auto 0;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        line-height: 1.35;
+    }
+    body.print-receipt.receipt-58 #receipt { width: 58mm; }
+    body.print-receipt.receipt-80 #receipt { width: 80mm; }
+    body.print-receipt.receipt-a4 #receipt { width: 100%; }
+}

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Services\ActivityLogger;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\StockMovement;
@@ -39,7 +40,9 @@ class ProductController extends Controller
     {
         $data = $this->validated($request);
 
-        Product::create($data);
+        $product = Product::create($data);
+
+        ActivityLogger::record('product.created', 'Menambah produk '.$product->name, $product, ['harga' => $product->selling_price]);
 
         return redirect()->route('products.index')->with('success', 'Produk ditambahkan.');
     }
@@ -65,7 +68,15 @@ class ProductController extends Controller
         // Perubahan stok lewat form tetap tercatat di riwayat (BUG-23).
         if ($stockChanged) {
             StockMovement::record($product, 'adjustment', $newStock, 'Koreksi stok via form produk', $request->user()->id);
+
+            ActivityLogger::record('product.stock', 'Stok '.$product->name.': '.$product->stock.' → '.$newStock, $product);
         }
+
+        if ((int) $product->selling_price !== (int) ($data['selling_price'] ?? $product->selling_price)) {
+            ActivityLogger::record('price.changed', 'Harga '.$product->name.' diubah', $product);
+        }
+
+        ActivityLogger::record('product.updated', 'Mengubah produk '.$product->name, $product);
 
         return redirect()->route('products.index')->with('success', 'Produk diperbarui.');
     }
@@ -255,6 +266,8 @@ class ProductController extends Controller
             $message .= ' Gagal: '.count($errors).' baris. '.implode(' ', array_slice($errors, 0, 5));
         }
 
+        ActivityLogger::record('product.import', $message, null, ['baris' => count($lines), 'gagal' => count($errors)]);
+
         return redirect()->route('products.index')->with($errors === [] ? 'success' : 'warning', $message);
     }
 
@@ -320,6 +333,8 @@ class ProductController extends Controller
             })(),
         };
 
+        ActivityLogger::record('product.bulk', $message, null, ['action' => $data['action'], 'jumlah' => count($data['ids'])]);
+
         return redirect()
             ->route('products.index')
             ->with($data['action'] === 'delete' && isset($skipped) && $skipped > 0 ? 'warning' : 'success', $message);
@@ -331,6 +346,8 @@ class ProductController extends Controller
             return redirect()->route('products.index')
                 ->with('warning', 'Produk sudah pernah terjual sehingga tidak bisa dihapus agar riwayat penjualan tetap utuh.');
         }
+
+        ActivityLogger::record('product.deleted', 'Menghapus produk '.$product->name, $product);
 
         $product->delete();
 
