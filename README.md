@@ -127,6 +127,16 @@ PR terbuka. Untuk perubahan besar, buka issue dulu supaya bisa didiskusikan.
 
 [MIT](LICENSE.md)
 
+## Pembaruan Aplikasi
+
+- Versi aplikasi tampil di header, lengkap dengan tombol **Perbarui** (muncul bila
+  ada versi baru) dan tombol **Apa Yang Baru** yang membuka daftar fitur per rilis.
+- Tombol Perbarui menjalankan: `git pull` → `composer install` → `npm ci` →
+  `npm run build` → `php artisan migrate --force` → `php artisan optimize:clear`.
+  Log tiap langkah tersimpan di `storage/app/logs/` dan `storage/logs/laravel.log`.
+- Nomor versi ada di `config/kasirku.php` (`version` + `changelog`). Naikkan versi
+  dan buat GitHub Release dengan tag yang sama agar tombol Perbarui muncul.
+
 ## Perangkat Kasir
 
 ### Scanner barcode USB / Bluetooth

@@ -8,7 +8,7 @@ return [
     | Naikkan nomor versi setiap ada rilis baru. Tampilan versi, deteksi
     | update, dan halaman "Apa Yang Baru" membaca nilai dari sini.
     */
-    'version' => '1.5.8',
+    'version' => '1.5.9',
 
     'released_at' => '2026-10-11',
 
@@ -21,6 +21,12 @@ return [
     | Kunci = nomor versi. Dipakai halaman "Apa Yang Baru".
     */
     'changelog' => [
+        '1.5.9' => [
+            'date' => '11 Oktober 2026',
+            'features' => [
+                'Pembaruan tidak lagi menghapus dependensi pengembangan (testing/Pint/Pail tetap tersedia).',
+            ],
+        ],
         '1.5.8' => [
             'date' => '11 Oktober 2026',
             'features' => [
