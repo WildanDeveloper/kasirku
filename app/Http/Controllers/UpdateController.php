@@ -96,7 +96,7 @@ class UpdateController extends Controller
         $steps = [
             'Mengambil kode terbaru' => 'git pull --ff-only',
             'Memasang dependensi PHP' => 'COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction',
-            'Memasang aset frontend' => 'npm ci',
+            'Memasang aset frontend' => 'npm ci --no-audit --no-fund --prefer-offline',
             'Membangun aset aplikasi' => 'npm run build',
             'Memperbarui database' => 'php artisan migrate --force',
             'Membersihkan cache' => 'php artisan optimize:clear',
