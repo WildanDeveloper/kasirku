@@ -112,11 +112,18 @@ class UpdateController extends Controller
         foreach ($steps as $label => $command) {
             $result = Process::timeout(600)->path($base)->run($command);
 
+            $output = trim($result->output().' '.$result->errorOutput());
+
             $log[] = [
                 'step' => $label,
                 'ok' => $result->successful(),
-                'output' => trim($result->output()),
+                'output' => $output,
             ];
+
+            // Simpan detail tiap langkah ke log server untuk memudahkan diagnosa.
+            \Illuminate\Support\Facades\Log::info('Pembaruan ['.$label.'] exit='.$result->exitCode(), [
+                'potongan' => \Illuminate\Support\Str::limit($output, 1200),
+            ]);
 
             if (! $result->successful()) {
                 break;
