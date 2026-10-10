@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Expense;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\SaleReturn;
+use App\Models\SaleReturnItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -31,13 +33,26 @@ class ReportController extends Controller
 
         $cogs = (clone $items)->selectRaw('SUM(sale_items.quantity * products.cost_price) as cogs')->value('cogs') ?? 0;
 
+        $returns = SaleReturn::whereBetween('created_at', [$start, $end]);
+        $returnsTotal = (int) (clone $returns)->sum('total');
+        $returnedCogs = (int) (SaleReturnItem::query()
+            ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_items.sale_return_id')
+            ->join('products', 'products.id', '=', 'sale_return_items.product_id')
+            ->whereBetween('sale_returns.created_at', [$start, $end])
+            ->selectRaw('COALESCE(SUM(sale_return_items.quantity * products.cost_price), 0) as cogs')
+            ->value('cogs') ?? 0);
+
+        $revenue = (int) (clone $sales)->sum('total') - $returnsTotal;
+        $cogs = (int) $cogs - $returnedCogs;
+
         $summary = [
             'transactions' => (clone $sales)->count(),
             'gross' => (clone $sales)->sum('subtotal'),
-            'discount' => (clone $sales)->sum('discount'),
-            'net' => (clone $sales)->sum('total'),
+            'discount' => (clone $sales)->sum('discount') + (clone $sales)->sum('voucher_discount'),
+            'returns' => $returnsTotal,
+            'net' => $revenue,
             'cogs' => $cogs,
-            'gross_profit' => (clone $sales)->sum('total') - $cogs,
+            'gross_profit' => $revenue - $cogs,
             'expenses' => Expense::whereBetween('spent_at', [$start, $end])->sum('amount'),
         ];
         $summary['net_profit'] = $summary['gross_profit'] - $summary['expenses'];
@@ -59,6 +74,16 @@ class ReportController extends Controller
                     ->value('cogs') ?? 0);
 
                 $day->expense = Expense::whereBetween('spent_at', [$dayStart, $dayEnd])->sum('amount');
+                $day->returns = (int) SaleReturn::whereBetween('created_at', [$dayStart, $dayEnd])->sum('total');
+                $day->returnedCogs = (int) (SaleReturnItem::query()
+                    ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_items.sale_return_id')
+                    ->join('products', 'products.id', '=', 'sale_return_items.product_id')
+                    ->whereBetween('sale_returns.created_at', [$dayStart, $dayEnd])
+                    ->selectRaw('COALESCE(SUM(sale_return_items.quantity * products.cost_price), 0) as cogs')
+                    ->value('cogs') ?? 0);
+
+                $day->cogs -= $day->returnedCogs;
+                $day->revenue -= $day->returns;
                 $day->profit = $day->revenue - $day->cogs - $day->expense;
 
                 return $day;
@@ -85,9 +110,9 @@ class ReportController extends Controller
             fputcsv($out, ['Laporan Kasirku', $start->format('d/m/Y'), $end->format('d/m/Y')]);
             fputcsv($out, []);
 
-            fputcsv($out, ['Tanggal', 'Transaksi', 'Kotor', 'Diskon', 'Bersih', 'HPP', 'Pengeluaran', 'Laba']);
+            fputcsv($out, ['Tanggal', 'Transaksi', 'Kotor', 'Diskon', 'Voucher', 'Retur', 'Bersih', 'HPP', 'Pengeluaran', 'Laba']);
             Sale::whereBetween('created_at', [$start, $end])
-                ->selectRaw("DATE(created_at) as day, COUNT(*) as transactions, SUM(subtotal) as gross, SUM(discount) as discount, SUM(total) as revenue")
+                ->selectRaw("DATE(created_at) as day, COUNT(*) as transactions, SUM(subtotal) as gross, SUM(discount) as discount, SUM(voucher_discount) as voucher, SUM(total) as revenue")
                 ->groupBy('day')
                 ->orderBy('day')
                 ->each(function ($day) use ($out, $start, $end) {
@@ -100,6 +125,16 @@ class ReportController extends Controller
                         ->whereBetween('sales.created_at', [$dayStart, $dayEnd])
                         ->selectRaw('SUM(sale_items.quantity * products.cost_price) as cogs')
                         ->value('cogs') ?? 0);
+
+                    $returns = (int) SaleReturn::whereBetween('created_at', [$dayStart, $dayEnd])->sum('total');
+                    $returnedCogs = (int) (SaleReturnItem::query()
+                        ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_items.sale_return_id')
+                        ->join('products', 'products.id', '=', 'sale_return_items.product_id')
+                        ->whereBetween('sale_returns.created_at', [$dayStart, $dayEnd])
+                        ->selectRaw('COALESCE(SUM(sale_return_items.quantity * products.cost_price), 0) as cogs')
+                        ->value('cogs') ?? 0);
+                    $cogs -= $returnedCogs;
+                    $revenue = (int) $day->revenue - $returns;
                     $expense = Expense::whereBetween('spent_at', [$dayStart, $dayEnd])->sum('amount');
 
                     fputcsv($out, [
@@ -107,18 +142,20 @@ class ReportController extends Controller
                         $day->transactions,
                         $day->gross,
                         $day->discount,
-                        $day->revenue,
+                        $day->voucher,
+                        $returns,
+                        $revenue,
                         $cogs,
                         $expense,
-                        $day->revenue - $cogs - $expense,
+                        $revenue - $cogs - $expense,
                     ]);
                 });
 
             fputcsv($out, []);
 
             fputcsv($out, ['Rincian Transaksi']);
-            fputcsv($out, ['Invoice', 'Waktu', 'Pelanggan', 'Kasir', 'Metode', 'Kotor', 'Diskon', 'Pajak', 'Total']);
-            Sale::with('customer', 'user')
+            fputcsv($out, ['Invoice', 'Waktu', 'Pelanggan', 'Kasir', 'Metode', 'Kotor', 'Diskon', 'Voucher', 'Pajak', 'Total', 'Retur']);
+            Sale::with('customer', 'user', 'returns')
                 ->whereBetween('created_at', [$start, $end])
                 ->orderBy('created_at')
                 ->each(function ($sale) use ($out) {
@@ -130,8 +167,10 @@ class ReportController extends Controller
                         $sale->payment_method,
                         $sale->subtotal,
                         $sale->discount,
+                        $sale->voucher_discount,
                         $sale->tax,
                         $sale->total,
+                        (int) $sale->returns->sum('total'),
                     ]);
                 });
 

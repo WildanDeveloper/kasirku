@@ -11,7 +11,7 @@ class SaleController extends Controller
 {
     public function index(Request $request)
     {
-        $sales = Sale::with(['user', 'customer'])
+        $sales = Sale::with(['user', 'customer', 'returns'])
             ->when($request->date, fn ($q, $d) => $q->whereDate('created_at', $d))
             ->when($request->credit === '1', fn ($q) => $q->where('is_credit', true)->whereNull('settled_at'))
             ->latest()
@@ -27,7 +27,7 @@ class SaleController extends Controller
 
     public function show(Sale $sale)
     {
-        $sale->load(['items.product', 'user', 'customer', 'payments.user']);
+        $sale->load(['items.product', 'user', 'customer', 'payments.user', 'voucher', 'returns.user', 'returns.items.product']);
 
         return view('sales.show', compact('sale'));
     }

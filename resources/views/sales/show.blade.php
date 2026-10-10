@@ -40,6 +40,9 @@
             @if ($sale->discount > 0)
                 <div class="flex justify-between"><span>Diskon</span><span>- Rp {{ number_format($sale->discount, 0, ',', '.') }}</span></div>
             @endif
+            @if ($sale->voucher_discount > 0)
+                <div class="flex justify-between"><span>Voucher {{ $sale->voucher?->code }}</span><span>- Rp {{ number_format($sale->voucher_discount, 0, ',', '.') }}</span></div>
+            @endif
             @if ($sale->tax > 0)
                 <div class="flex justify-between"><span>Pajak</span><span>Rp {{ number_format($sale->tax, 0, ',', '.') }}</span></div>
             @endif
@@ -66,7 +69,35 @@
             </div>
         </div>
 
+        @foreach ($sale->returns as $return)
+            <div class="mt-3 page-card p-4 text-sm print:hidden border-red-100">
+                <div class="flex items-center justify-between">
+                    <span class="font-semibold text-red-700">Retur {{ $return->created_at->format('d/m/Y H:i') }}</span>
+                    <span class="font-bold text-red-600">Rp {{ number_format($return->total, 0, ',', '.') }}</span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                    {{ $return->reason ?? 'Tanpa alasan' }} ·
+                    {{ $return->refund_method === 'cash' ? 'Kembalikan uang' : 'Barang saja (tanpa uang)' }}
+                    @if ($return->debt_reduction > 0) · mengurangi utang Rp {{ number_format($return->debt_reduction, 0, ',', '.') }} @endif
+                    · oleh {{ $return->user?->name }}
+                </div>
+                <div class="text-xs text-gray-600 mt-1">
+                    @foreach ($return->items as $item)
+                        <span class="inline-block mr-2">{{ $item->product->name }} {{ $item->quantity }}×</span>
+                    @endforeach
+                </div>
+            </div>
+        @endforeach
+
         <div class="mt-4 space-y-2 print:hidden">
+            @if ($sale->returnableItems()->isNotEmpty())
+                <a href="{{ route('sales.return.create', $sale) }}" class="w-full btn-secondary">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                    </svg>
+                    Retur Barang
+                </a>
+            @endif
             @if ($sale->is_credit && ! $sale->settled_at)
                 <form method="POST" action="{{ route('sales.pay', $sale) }}" class="page-card p-4 flex flex-wrap gap-2 items-end">
                     @csrf

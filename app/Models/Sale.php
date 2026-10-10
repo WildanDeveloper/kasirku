@@ -21,6 +21,8 @@ class Sale extends Model
         'payment_method',
         'user_id',
         'customer_id',
+        'voucher_id',
+        'voucher_discount',
     ];
 
     protected $casts = [
@@ -48,9 +50,38 @@ class Sale extends Model
         return $this->hasMany(SalePayment::class);
     }
 
+    public function returns(): HasMany
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
+    }
+
     public function remainingAmount(): int
     {
         return max(0, $this->total - $this->paid_amount);
+    }
+
+    public function returnedTotal(): int
+    {
+        return (int) $this->returns()->sum('total');
+    }
+
+    /** Sisa yang bisa diretur per item (sudah dikurangi retur sebelumnya). */
+    public function returnableItems()
+    {
+        return $this->items->map(function (SaleItem $item) {
+            $returned = (int) $item->returnItems()->sum('quantity');
+
+            return (object) [
+                'item' => $item,
+                'returned' => $returned,
+                'available' => max(0, $item->quantity - $returned),
+            ];
+        })->filter(fn ($row) => $row->available > 0)->values();
     }
 
     public static function nextInvoiceNumber(): string

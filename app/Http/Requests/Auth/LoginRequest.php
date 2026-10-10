@@ -50,6 +50,14 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        if (! Auth::user()->isActive()) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun ini dinonaktifkan. Hubungi admin.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

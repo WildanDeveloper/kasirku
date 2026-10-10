@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\CustomerPrice;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -18,6 +19,33 @@ class CustomerController extends Controller
             ->withQueryString();
 
         return view('customers.index', compact('customers'));
+    }
+
+    public function show(Customer $customer)
+    {
+        $sales = $customer->sales()->with('user')->latest()->paginate(10);
+
+        $stats = [
+            'transactions' => $customer->sales()->count(),
+            'total_spent' => (int) $customer->sales()->sum('total'),
+            'outstanding' => $customer->outstanding(),
+            'avg' => (int) ($customer->sales()->avg('total') ?? 0),
+            'last_purchase' => $customer->sales()->max('created_at'),
+        ];
+
+        $favorites = \App\Models\SaleItem::query()
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->join('products', 'products.id', '=', 'sale_items.product_id')
+            ->where('sales.customer_id', $customer->id)
+            ->selectRaw('products.name, SUM(sale_items.quantity) as qty, SUM(sale_items.subtotal) as spent')
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('qty')
+            ->limit(5)
+            ->get();
+
+        $prices = $customer->prices()->with('product')->orderBy('product_id')->get();
+
+        return view('customers.show', compact('customer', 'sales', 'stats', 'favorites', 'prices'));
     }
 
     public function store(Request $request)
@@ -41,12 +69,44 @@ class CustomerController extends Controller
         return back()->with('success', 'Pelanggan dihapus.');
     }
 
+    /** Harga khusus produk untuk pelanggan ini. */
+    public function storePrice(Request $request, Customer $customer)
+    {
+        $data = $request->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'price' => ['required', 'integer', 'min:0'],
+        ]);
+
+        CustomerPrice::updateOrCreate(
+            ['customer_id' => $customer->id, 'product_id' => $data['product_id']],
+            ['price' => $data['price']],
+        );
+
+        return back()->with('success', 'Harga khusus disimpan.');
+    }
+
+    public function destroyPrice(Customer $customer, CustomerPrice $customerPrice)
+    {
+        abort_if($customerPrice->customer_id !== $customer->id, 404);
+        $customerPrice->delete();
+
+        return back()->with('success', 'Harga khusus dihapus.');
+    }
+
     private function validated(Request $request, ?Customer $customer = null): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:500'],
+            'is_wholesale' => ['nullable', 'boolean'],
         ]);
+
+        return [
+            'name' => $data['name'],
+            'phone' => ($data['phone'] ?? null) ?: null,
+            'address' => ($data['address'] ?? null) ?: null,
+            'is_wholesale' => (bool) ($data['is_wholesale'] ?? false),
+        ];
     }
 }

@@ -30,8 +30,16 @@
                     <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                     </svg>
-                    <input type="text" x-model="search" x-ref="search" placeholder="Cari nama / scan barcode..."
-                           class="w-full rounded-lg border-gray-300 pl-11 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500" autofocus>
+                    <input type="text" x-model="search" x-ref="search" placeholder="Cari nama / ketik barcode lalu Enter..."
+                           @keydown.enter.prevent="addFromSearch()"
+                           class="w-full rounded-lg border-gray-300 pl-11 pr-24 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500" autofocus>
+                    <button type="button" @click="startScanner()"
+                            class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 7.5V5.25A1.5 1.5 0 0 1 5.25 3.75H7.5M2.25 12h1.5m-1.5 4.5h1.5m1.5-12h1.5m6 0H15m3.75 3.75H21m-3.75 6H21m-9.75 3.75H9.75M6 18.75h.008v.008H6v-.008Zm0-4.5h.008v.008H6v-.008Zm3 4.5h.008v.008H9v-.008Zm0-4.5h.008v.008H9v-.008Zm3 4.5h.008v.008H12v-.008Zm0-4.5h.008v.008H12v-.008Zm3 4.5h.008v.008H15v-.008Zm0-4.5h.008v.008H15v-.008ZM16.5 3.75h2.25A1.5 1.5 0 0 1 20.25 5.25v2.25m0 9v2.25a1.5 1.5 0 0 1-1.5 1.5h-2.25M3.75 18.75H5.25A1.5 1.5 0 0 0 6.75 17.25V15" />
+                        </svg>
+                        Scan
+                    </button>
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[30rem] overflow-y-auto pr-1">
@@ -45,7 +53,7 @@
                             <span x-show="product.stock > 0 && product.stock <= 5"
                                   class="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase">Menipis</span>
                             <div class="font-semibold text-sm text-gray-900" x-text="product.name"></div>
-                            <div class="mt-1 text-sm font-bold text-emerald-600" x-text="format(product.selling_price)"></div>
+                            <div class="mt-1 text-sm font-bold text-emerald-600" x-text="format(priceOf(product))"></div>
                             <div class="mt-1 text-xs text-gray-500" x-text="'Stok: ' + product.stock + ' ' + product.unit"></div>
                         </button>
                     </template>
@@ -91,7 +99,7 @@
                         <div class="flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-100 p-2.5">
                             <div class="min-w-0 flex-1">
                                 <div class="text-sm font-semibold text-gray-900 truncate" x-text="item.name"></div>
-                                <div class="text-xs text-gray-500" x-text="format(item.selling_price) + ' x ' + item.quantity"></div>
+                                <div class="text-xs text-gray-500" x-text="format(priceOf(item)) + ' x ' + item.quantity + ' = ' + format(priceOf(item) * item.quantity)"></div>
                             </div>
                             <div class="flex items-center rounded-lg border border-gray-200 bg-white overflow-hidden">
                                 <button type="button" @click="dec(item)" class="px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-gray-800">&minus;</button>
@@ -118,6 +126,27 @@
                     <div class="flex items-end justify-between">
                         <span class="text-sm font-medium text-gray-500">Subtotal</span>
                         <span class="text-sm font-bold text-gray-900" x-text="format(subtotal)"></span>
+                    </div>
+
+                    <!-- Voucher -->
+                    <div class="flex gap-2">
+                        <input type="text" x-model="voucherCode" @keydown.enter.prevent="applyVoucher()"
+                               placeholder="Kode voucher" class="form-input uppercase"
+                               :disabled="voucherDiscount > 0">
+                        <button type="button" @click="applyVoucher()" x-show="voucherDiscount === 0"
+                                class="btn-secondary !px-3 whitespace-nowrap">Pakai</button>
+                        <button type="button" @click="removeVoucher()" x-show="voucherDiscount > 0"
+                                class="btn-secondary !px-3 whitespace-nowrap text-red-600">Batal</button>
+                    </div>
+                    <p x-show="voucherMessage" class="text-xs" :class="voucherError ? 'text-red-600' : 'text-emerald-600'" x-text="voucherMessage"></p>
+
+                    <div class="flex justify-between text-sm" x-show="discount > 0">
+                        <span class="text-gray-500">Diskon</span>
+                        <span class="font-semibold text-amber-600">- <span x-text="format(discount)"></span></span>
+                    </div>
+                    <div class="flex justify-between text-sm" x-show="voucherDiscount > 0">
+                        <span class="text-gray-500">Voucher <span x-text="voucherName"></span></span>
+                        <span class="font-semibold text-emerald-600">- <span x-text="format(voucherDiscount)"></span></span>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -211,11 +240,27 @@
         </div>
     </div>
 
+    <!-- Modal scan barcode -->
+    <div x-show="scannerOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4"
+         @keydown.escape.window="stopScanner()">
+        <div class="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden" @click.outside="stopScanner()">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <h3 class="text-sm font-bold text-gray-900">Scan Barcode</h3>
+                <button type="button" @click="stopScanner()" class="text-gray-400 hover:text-gray-700">&times;</button>
+            </div>
+            <div id="qr-reader" class="w-full bg-black"></div>
+            <div class="px-4 py-3 text-xs text-gray-500">
+                Arahkan kamera ke barcode produk. Bisa juga ketik barcode di kotak pencarian lalu tekan Enter.
+            </div>
+        </div>
+    </div>
+
     <script>
         function pos() {
             return {
                 products: @json($products),
                 customers: @json($customers),
+                customPrices: @json($customPrices),
                 taxPercent: @json($taxPercent),
                 openShift: @json((bool) $openShift),
                 heldSales: @json($heldSales),
@@ -231,6 +276,14 @@
                 message: '',
                 success: false,
                 receiptUrl: '',
+                voucherCode: '',
+                voucherName: '',
+                voucherDiscount: 0,
+                voucherMessage: '',
+                voucherError: false,
+                scanner: null,
+                scannerOpen: false,
+                scannerError: '',
 
                 get filtered() {
                     const s = this.search.toLowerCase().trim();
@@ -240,19 +293,34 @@
                     );
                 },
 
+                /** Harga produk sesuai pelanggan terpilih (khusus > grosir > ecer). */
+                priceOf(product) {
+                    if (!this.customerId) return product.selling_price;
+                    const customer = this.customers.find(c => c.id == this.customerId);
+                    if (!customer) return product.selling_price;
+                    const custom = this.customPrices[customer.id + ':' + product.id];
+                    if (custom) return custom;
+                    if (customer.is_wholesale) return product.price_wholesale || product.selling_price;
+                    return product.selling_price;
+                },
+
                 get subtotal() {
-                    return this.cart.reduce((sum, item) => sum + item.selling_price * item.quantity, 0);
+                    return this.cart.reduce((sum, item) => sum + this.priceOf(item) * item.quantity, 0);
                 },
 
                 get discount() { return Math.max(0, Number(this.discountInput) || 0); },
 
+                get taxableBase() {
+                    return Math.max(0, this.subtotal - this.discount - this.voucherDiscount);
+                },
+
                 get taxAmount() {
                     if (!this.applyTax) return 0;
-                    return Math.round((this.subtotal - this.discount) * this.taxPercent / 100);
+                    return Math.round(this.taxableBase * this.taxPercent / 100);
                 },
 
                 get total() {
-                    return Math.max(this.subtotal - this.discount, 0) + this.taxAmount;
+                    return this.taxableBase + this.taxAmount;
                 },
 
                 format(value) {
@@ -260,12 +328,99 @@
                 },
 
                 add(product) {
+                    if (product.stock === 0) return;
                     const existing = this.cart.find(i => i.id === product.id);
                     if (existing) {
                         if (existing.quantity < product.stock) existing.quantity++;
                     } else {
                         this.cart.push({ ...product, quantity: 1 });
                     }
+                },
+
+                addFromSearch() {
+                    const exact = this.products.find(p => p.barcode && p.barcode === this.search.trim());
+                    const product = exact || this.filtered[0];
+                    if (product) {
+                        this.add(product);
+                        this.search = '';
+                        this.$refs.search?.focus();
+                    }
+                },
+
+                addByBarcode(code) {
+                    const product = this.products.find(p => p.barcode && p.barcode === code);
+                    if (product) {
+                        this.add(product);
+                        return true;
+                    }
+                    return false;
+                },
+
+                async startScanner() {
+                    this.scannerOpen = true;
+                    this.scannerError = '';
+
+                    try {
+                        const Html5Qrcode = await window.loadQrScanner();
+                        this.$nextTick(async () => {
+                            this.scanner = new Html5Qrcode('qr-reader');
+                            await this.scanner.start(
+                                { facingMode: 'environment' },
+                                { fps: 10, qrbox: { width: 240, height: 140 } },
+                                (decoded) => {
+                                    if (this.addByBarcode(decoded)) {
+                                        this.stopScanner();
+                                    } else {
+                                        this.scannerError = 'Barcode ' + decoded + ' tidak ditemukan.';
+                                    }
+                                },
+                                () => {}
+                            );
+                        });
+                    } catch (e) {
+                        this.scannerError = 'Kamera tidak bisa diakses. Pastikan izin kamera diizinkan, atau ketik barcode secara manual.';
+                    }
+                },
+
+                async stopScanner() {
+                    if (this.scanner) {
+                        try { await this.scanner.stop(); this.scanner.clear(); } catch (e) {}
+                        this.scanner = null;
+                    }
+                    this.scannerOpen = false;
+                    this.scannerError = '';
+                },
+
+                async applyVoucher() {
+                    const code = this.voucherCode.trim();
+                    if (! code) return;
+
+                    this.voucherMessage = '';
+                    const response = await fetch(
+                        @json(route('vouchers.check', ':code:')).replace(':code:', encodeURIComponent(code)) + '?subtotal=' + this.taxableBase,
+                        { headers: { 'Accept': 'application/json' } }
+                    );
+
+                    const data = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        this.voucherError = true;
+                        this.voucherMessage = data.message || 'Voucher tidak valid.';
+                        return;
+                    }
+
+                    this.voucherError = false;
+                    this.voucherCode = data.code;
+                    this.voucherName = data.code + ' (' + data.label + ')';
+                    this.voucherDiscount = data.discount;
+                    this.voucherMessage = 'Voucher ' + data.code + ' dipakai: potongan ' + this.format(data.discount) + '.';
+                },
+
+                removeVoucher() {
+                    this.voucherCode = '';
+                    this.voucherName = '';
+                    this.voucherDiscount = 0;
+                    this.voucherMessage = '';
                 },
 
                 inc(item) {
@@ -364,6 +519,7 @@
                                 customer_id: this.customerId || null,
                                 apply_tax: this.applyTax,
                                 is_credit: this.isCredit && !!this.customerId,
+                                voucher_code: this.voucherCode || null,
                                 paid_amount: this.isCredit
                                     ? Math.min(this.paidAmount || 0, this.total)
                                     : Math.max(this.paidAmount, this.total),
@@ -394,6 +550,7 @@
                         this.applyTax = false;
                         this.isCredit = false;
                         this.paidAmount = 0;
+                        this.removeVoucher();
                     } catch (error) {
                         this.success = false;
                         this.message = error.message;

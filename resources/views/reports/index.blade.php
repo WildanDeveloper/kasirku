@@ -26,6 +26,7 @@
             <x-stat-card label="Jumlah Transaksi" :value="number_format($summary['transactions'])" tone="blue" icon="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
             <x-stat-card label="Pendapatan Kotor" value="Rp {{ number_format($summary['gross'], 0, ',', '.') }}" tone="gray" icon="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             <x-stat-card label="Diskon Diberikan" value="Rp {{ number_format($summary['discount'], 0, ',', '.') }}" tone="amber" icon="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z M6 6h.008v.008H6V6Z" />
+            <x-stat-card label="Retur Penjualan" value="Rp {{ number_format($summary['returns'], 0, ',', '.') }}" tone="red" icon="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
             <x-stat-card label="Pendapatan Bersih" value="Rp {{ number_format($summary['net'], 0, ',', '.') }}" tone="emerald" icon="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
         </div>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -58,6 +59,7 @@
                                     <th class="py-1.5">Tanggal</th>
                                     <th class="py-1.5 text-right">Trx</th>
                                     <th class="py-1.5 text-right">Kotor</th>
+                                    <th class="py-1.5 text-right">Retur</th>
                                     <th class="py-1.5 text-right">Bersih</th>
                                     <th class="py-1.5 text-right">Laba</th>
                                 </tr>
@@ -68,6 +70,7 @@
                                         <td class="py-1.5 text-gray-600">{{ \Carbon\Carbon::parse($day->day)->translatedFormat('d M Y') }}</td>
                                         <td class="py-1.5 text-right">{{ $day->transactions }}</td>
                                         <td class="py-1.5 text-right text-gray-500">Rp {{ number_format($day->gross, 0, ',', '.') }}</td>
+                                        <td class="py-1.5 text-right text-red-500">@if ($day->returns > 0)- Rp {{ number_format($day->returns, 0, ',', '.') }}@else —@endif</td>
                                         <td class="py-1.5 text-right font-semibold">Rp {{ number_format($day->revenue, 0, ',', '.') }}</td>
                                         <td class="py-1.5 text-right font-semibold {{ $day->profit >= 0 ? 'text-emerald-600' : 'text-red-600' }}">Rp {{ number_format($day->profit, 0, ',', '.') }}</td>
                                     </tr>

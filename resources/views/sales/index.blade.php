@@ -64,6 +64,9 @@
                                     @if ($sale->is_credit && ! $sale->settled_at)
                                         <span class="block text-[10px] uppercase font-bold text-amber-600">Utang: Rp {{ number_format($sale->remainingAmount(), 0, ',', '.') }}</span>
                                     @endif
+                                    @if ($sale->returns->isNotEmpty())
+                                        <span class="block text-[10px] uppercase font-bold text-red-500">Retur: Rp {{ number_format($sale->returns->sum('total'), 0, ',', '.') }}</span>
+                                    @endif
                                 </td>
                                 <td class="table-td text-right">
                                     <a href="{{ route('sales.show', $sale) }}"

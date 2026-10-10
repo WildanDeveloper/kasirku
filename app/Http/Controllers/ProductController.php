@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +57,56 @@ class ProductController extends Controller
         $product->update($this->validated($request, $product));
 
         return redirect()->route('products.index')->with('success', 'Produk diperbarui.');
+    }
+
+    public function show(Product $product)
+    {
+        $product->load(['category', 'customerPrices.customer']);
+
+        $sold = (int) $product->saleItems()->sum('quantity');
+        $revenue = (int) $product->saleItems()->sum('subtotal');
+        $returned = (int) $product->returnItems()->sum('quantity');
+
+        $recentSales = $product->saleItems()
+            ->with('sale.user', 'sale.customer')
+            ->latest()
+            ->limit(15)
+            ->get();
+
+        $movements = $product->stockMovements()->with('user')->latest('id')->limit(20)->get();
+
+        $potentialProfit = $product->saleItems()
+            ->selectRaw('COALESCE(SUM(sale_items.subtotal - sale_items.quantity * products.cost_price), 0) as profit')
+            ->join('products', 'products.id', '=', 'sale_items.product_id')
+            ->value('profit');
+
+        return view('products.show', compact('product', 'sold', 'revenue', 'returned', 'recentSales', 'movements', 'potentialProfit'));
+    }
+
+    /** Cetak label harga untuk produk terpilih (bulk). */
+    public function labels(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:500'],
+            'ids.*' => ['integer', 'exists:products,id'],
+            'mode' => ['nullable', 'in:retail,wholesale'],
+        ]);
+
+        $products = Product::with('category')->whereKey($data['ids'])->get();
+
+        if ($products->isEmpty()) {
+            return back()->with('warning', 'Tidak ada produk terpilih.');
+        }
+
+        $shop = [
+            'name' => Setting::get('store_name'),
+            'address' => Setting::get('store_address'),
+            'phone' => Setting::get('store_phone'),
+        ];
+
+        $mode = $data['mode'] ?? 'retail';
+
+        return view('products.labels', compact('products', 'shop', 'mode'));
     }
 
     public function importForm()
@@ -241,6 +292,7 @@ class ProductController extends Controller
             'category_id' => ['nullable', 'exists:categories,id'],
             'cost_price' => ['required', 'integer', 'min:0'],
             'selling_price' => ['required', 'integer', 'min:0'],
+            'price_wholesale' => ['nullable', 'integer', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'min_stock' => ['required', 'integer', 'min:0'],
             'unit' => ['required', 'string', 'max:20'],
@@ -248,6 +300,9 @@ class ProductController extends Controller
 
         $data['barcode'] = $data['barcode'] ?: null;
         $data['category_id'] = $data['category_id'] ?? null;
+        $data['price_wholesale'] = ($data['price_wholesale'] ?? null) !== null && $data['price_wholesale'] !== ''
+            ? (int) $data['price_wholesale']
+            : null;
 
         return $data;
     }

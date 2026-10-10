@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\CashShift;
 use App\Models\Customer;
+use App\Models\CustomerPrice;
 use App\Models\HeldSale;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Setting;
 use App\Models\StockMovement;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -25,8 +27,18 @@ class PosController extends Controller
             ->limit(50)
             ->get();
 
+        // Map harga khusus: "customerId:productId" => harga.
+        $customPrices = CustomerPrice::whereIn('product_id', $products->pluck('id'))
+            ->pluck('price', DB::raw("customer_id || ':' || product_id"))
+            ->map(fn ($v) => (int) $v)
+            ->all();
+
         $customers = Customer::orderBy('name')->get();
         $taxPercent = (float) Setting::get('tax_percent');
+        $vouchers = Voucher::where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>=', now()))
+            ->orderBy('code')
+            ->get(['code', 'name', 'type', 'value', 'min_purchase']);
         $openShift = CashShift::open()->where('user_id', $request->user()->id)->latest()->first();
         $heldSales = HeldSale::with('customer')->where('user_id', $request->user()->id)->latest()->get()
             ->map(fn ($h) => [
@@ -37,7 +49,7 @@ class PosController extends Controller
                 'note' => $h->note,
             ]);
 
-        return view('pos.index', compact('products', 'customers', 'taxPercent', 'openShift', 'heldSales'));
+        return view('pos.index', compact('products', 'customers', 'taxPercent', 'openShift', 'heldSales', 'customPrices', 'vouchers'));
     }
 
     public function hold(Request $request)
@@ -80,6 +92,7 @@ class PosController extends Controller
             'customer_id' => ['nullable', 'exists:customers,id'],
             'apply_tax' => ['nullable', 'boolean'],
             'is_credit' => ['nullable', 'boolean'],
+            'voucher_code' => ['nullable', 'string', 'max:50'],
             'paid_amount' => ['required', 'integer', 'min:0'],
             'payment_method' => ['required', 'in:cash,qris,debit'],
         ]);
@@ -90,7 +103,11 @@ class PosController extends Controller
             'Buka shift kasir terlebih dahulu.'
         );
 
-        $sale = DB::transaction(function () use ($data, $request) {
+        $customer = ! empty($data['customer_id'])
+            ? Customer::find($data['customer_id'])
+            : null;
+
+        $sale = DB::transaction(function () use ($data, $request, $customer) {
             $subtotal = 0;
 
             $sale = Sale::create([
@@ -107,18 +124,23 @@ class PosController extends Controller
             ]);
 
             foreach ($data['items'] as $item) {
-                $product = Product::whereKey($item['product_id'])->lockForUpdate()->firstOrFail();
+                $product = Product::with('customerPrices')
+                    ->whereKey($item['product_id'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
                 abort_if($product->stock < $item['quantity'], 422, "Stok {$product->name} tidak cukup.");
 
-                $line = $product->selling_price * $item['quantity'];
+                // Harga mengikuti jenis pelanggan: harga khusus > grosir > ecer.
+                $price = $product->priceFor($customer);
+                $line = $price * $item['quantity'];
                 $subtotal += $line;
 
                 SaleItem::create([
                     'sale_id' => $sale->id,
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
-                    'price' => $product->selling_price,
+                    'price' => $price,
                     'subtotal' => $line,
                 ]);
 
@@ -126,13 +148,28 @@ class PosController extends Controller
             }
 
             $discount = min((int) ($data['discount'] ?? 0), $subtotal);
+
+            $voucher = null;
+            $voucherDiscount = 0;
+            if (! empty($data['voucher_code'])) {
+                $voucher = Voucher::whereRaw('LOWER(code) = ?', [strtolower($data['voucher_code'])])
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_if(! $voucher, 422, 'Kode voucher tidak ditemukan.');
+                abort_if(! $voucher->isValidNow(), 422, 'Voucher '.$voucher->statusLabel().'.');
+
+                $voucherDiscount = $voucher->discountFor(max(0, $subtotal - $discount));
+                abort_if($voucherDiscount <= 0, 422, 'Voucher tidak berlaku untuk belanja ini.');
+            }
+
             $tax = 0;
 
             if (! empty($data['apply_tax']) && (float) Setting::get('tax_percent') > 0) {
-                $tax = (int) round(($subtotal - $discount) * (float) Setting::get('tax_percent') / 100);
+                $tax = (int) round(($subtotal - $discount - $voucherDiscount) * (float) Setting::get('tax_percent') / 100);
             }
 
-            $total = $subtotal - $discount + $tax;
+            $total = $subtotal - $discount - $voucherDiscount + $tax;
 
             $isCredit = ! empty($data['is_credit']) && ($data['customer_id'] ?? null) !== null;
             if ($isCredit) {
@@ -144,6 +181,8 @@ class PosController extends Controller
             $sale->update([
                 'subtotal' => $subtotal,
                 'discount' => $discount,
+                'voucher_id' => $voucher?->id,
+                'voucher_discount' => $voucherDiscount,
                 'tax' => $tax,
                 'total' => $total,
                 'paid_amount' => $data['paid_amount'],
@@ -152,12 +191,16 @@ class PosController extends Controller
                 'settled_at' => $isCredit ? null : now(),
             ]);
 
+            $voucher?->increment('used_count');
+
             return $sale;
         });
 
         return response()->json([
             'invoice_number' => $sale->invoice_number,
             'total' => $sale->total,
+            'discount' => $sale->discount,
+            'voucher_discount' => $sale->voucher_discount,
             'change_amount' => $sale->change_amount,
             'remaining' => $sale->remainingAmount(),
             'receipt_url' => route('sales.show', $sale),

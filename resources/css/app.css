@@ -44,6 +44,30 @@
     .table-td {
         @apply px-4 py-3 text-sm;
     }
+    .label-sheet {
+        @apply grid gap-2 p-4;
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .label-card {
+        @apply border border-gray-400 rounded-lg p-2 text-center break-inside-avoid;
+    }
+}
+
+/* Cetak label harga */
+@media print {
+    body.label-print * {
+        visibility: hidden;
+    }
+    #label-sheet, #label-sheet * {
+        visibility: visible;
+    }
+    #label-sheet {
+        position: absolute;
+        inset: 0;
+    }
+    @page {
+        margin: 8mm;
+    }
 }
 
 /* Struk: hanya area struk yang tercetak */

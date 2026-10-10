@@ -14,6 +14,7 @@ class Product extends Model
         'category_id',
         'cost_price',
         'selling_price',
+        'price_wholesale',
         'stock',
         'min_stock',
         'unit',
@@ -34,8 +35,42 @@ class Product extends Model
         return $this->hasMany(SaleItem::class);
     }
 
+    public function customerPrices(): HasMany
+    {
+        return $this->hasMany(CustomerPrice::class);
+    }
+
+    public function returnItems(): HasMany
+    {
+        return $this->hasMany(SaleReturnItem::class);
+    }
+
     public function isLowStock(): bool
     {
         return $this->stock <= $this->min_stock;
+    }
+
+    /** Harga grosir fallback ke harga ecer bila belum diisi. */
+    public function wholesalePrice(): int
+    {
+        return (int) ($this->price_wholesale ?? $this->selling_price);
+    }
+
+    /** Harga untuk pelanggan tertentu (harga khusus > grosir > ecer). */
+    public function priceFor(?Customer $customer): int
+    {
+        if (! $customer) {
+            return (int) $this->selling_price;
+        }
+
+        $custom = $this->relationLoaded('customerPrices')
+            ? $this->customerPrices->firstWhere('customer_id', $customer->id)
+            : null;
+
+        if ($custom) {
+            return (int) $custom->price;
+        }
+
+        return $customer->is_wholesale ? $this->wholesalePrice() : (int) $this->selling_price;
     }
 }

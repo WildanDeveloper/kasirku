@@ -30,10 +30,18 @@
         <x-input-error :messages="$errors->get('cost_price')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="selling_price" value="Harga Jual (Rp)" />
+        <x-input-label for="selling_price" value="Harga Jual Ecer (Rp)" />
         <x-text-input id="selling_price" name="selling_price" type="number" min="0" value="{{ old('selling_price', $product->selling_price) }}" required class="mt-1.5 form-input" />
         <x-input-error :messages="$errors->get('selling_price')" class="mt-2" />
     </div>
+</div>
+
+<div>
+    <x-input-label for="price_wholesale" value="Harga Grosir (Rp) — opsional" />
+    <x-text-input id="price_wholesale" name="price_wholesale" type="number" min="0"
+                  value="{{ old('price_wholesale', $product->price_wholesale) }}" class="mt-1.5 form-input" placeholder="Kosongkan = pakai harga ecer" />
+    <p class="mt-1 text-xs text-gray-500">Dipakai otomatis untuk pelanggan yang ditandai <strong>Grosir</strong>. Bisa juga diatur per pelanggan di halaman kartu pelanggan.</p>
+    <x-input-error :messages="$errors->get('price_wholesale')" class="mt-2" />
 </div>
 
 <div class="grid grid-cols-3 gap-4">
