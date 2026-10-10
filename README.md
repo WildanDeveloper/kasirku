@@ -53,16 +53,44 @@ Login bawaan dari seeder:
 Detail CSP yang dikirim:
 
 ```
-default-src 'self'; script-src 'self' 'nonce-<random>' 'unsafe-eval';
-style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;
-connect-src 'self'; worker-src 'self' blob:; object-src 'none';
-base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+default-src 'self'; script-src 'self' 'nonce-<random>'; style-src 'self';
+img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:;
+object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
 ```
 
-`'unsafe-eval'` masih diperlukan karena Alpine.js mengeksekusi expression
-(`x-data`, `@click`, `x-text`), tapi `'unsafe-inline'` **sudah dihapus** untuk script:
-semua `<script>` inline diberi `nonce="{{ $cspNonce }}"`, dan atribut event inline
-(`onclick`/`onsubmit`) tidak lagi dipakai — semuanya dipindah ke Alpine atau helper.
+Tidak ada lagi `unsafe-eval` maupun `unsafe-inline`:
+
+- Alpine memakai **build CSP** (`@alpinejs/csp`), bukan `eval`-based. Ekspresi di
+  template dibatasi pada operasi sederhana, jadi logika aplikasi dipindah ke
+  komponen JS di `resources/js/components/` dan didaftarkan lewat `Alpine.data()`.
+- Atribut event inline (`onclick`/`onsubmit`) dihapus; konfirmasi hapus, cetak,
+  salin kode voucher, dan buka/tutup baris edit semuanya lewat method Alpine.
+- Tidak ada atribut `style="..."` lagi; grafik dashboard/laporan memakai elemen
+  `<svg>` (atribut `y`/`height`), dan latar grid login dipindah ke kelas CSS.
+- Aset Alpine sendiri tidak memanggil `eval`/`new Function` (terverifikasi di bundle).
+
+Konsekuensi menulis komponen Alpine di proyek ini:
+
+```js
+// resources/js/components/ui.js
+export function tableTools() {
+    return {
+        ask(event, message) {
+            if (! confirm(message)) event.preventDefault();   // API browser di dalam method
+        },
+    };
+}
+```
+
+```blade
+<div x-data="tableTools">
+    <form @submit="ask($event, 'Hapus data ini?')">...</form>
+</div>
+```
+
+Ekspresi seperti `document`, `window`, `Math`, arrow function (`=>`), template
+literal, dan `if (...)` **tidak boleh** dipakai di atribut `x-*` — pindahkan ke
+method komponen.
 
 ## Struktur Database
 

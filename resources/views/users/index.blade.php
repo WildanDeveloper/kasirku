@@ -6,7 +6,7 @@
         </div>
     </x-slot>
 
-    <div x-data class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-5">
+    <div x-data="tableTools" class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-5">
         @if (session('success'))
             <div class="rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">{{ session('success') }}</div>
         @endif
@@ -63,10 +63,10 @@
                                 </td>
                                 <td class="table-td text-right">{{ $user->sales_count }}</td>
                                 <td class="table-td text-right whitespace-nowrap">
-                                    <button type="button" @click="document.getElementById('user-edit-{{ $loop->index }}').classList.toggle('hidden')"
+                                    <button type="button" @click="toggleEdit('user-edit-{{ $loop->index }}')"
                                             class="text-xs font-semibold text-emerald-600 hover:underline">Edit</button>
                                     <form method="POST" action="{{ route('users.destroy', $user) }}" class="inline"
-                                          @submit="if (! confirm('Hapus user {{ $user->name }}?')) $event.preventDefault()">
+                                          @submit="ask($event, 'Hapus user {{ $user->name }}?')">
                                         @csrf @method('DELETE')
                                         <button class="text-xs font-semibold text-red-500 hover:text-red-700">Hapus</button>
                                     </form>

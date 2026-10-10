@@ -6,7 +6,7 @@
         </div>
     </x-slot>
 
-    <div x-data class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+    <div x-data="confirmSubmit" class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         @if (session('success'))
             <div class="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">{{ session('success') }}</div>
         @endif
@@ -68,7 +68,7 @@
                                     </td>
                                     <td class="table-td text-right whitespace-nowrap">
                                         <a href="{{ route('customers.show', $customer) }}" class="text-sm font-semibold text-emerald-600 hover:text-emerald-500">Detail</a>
-                                        <form method="POST" action="{{ route('customers.destroy', $customer) }}" class="inline" @submit="if (! confirm('Hapus pelanggan ini?')) $event.preventDefault()">
+                                        <form method="POST" action="{{ route('customers.destroy', $customer) }}" class="inline" @submit="ask($event, 'Hapus pelanggan ini?')">
                                             @csrf
                                             @method('DELETE')
                                             <button class="text-sm font-semibold text-red-500 hover:text-red-700 ml-3">Hapus</button>

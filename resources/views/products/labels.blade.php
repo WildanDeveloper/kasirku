@@ -5,18 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Label Harga — {{ $shop['name'] }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>
-        body { font-family: 'Figtree', system-ui, sans-serif; }
-    </style>
 </head>
-<body class="label-print bg-white" x-data>
+<body class="label-print bg-white font-sans" x-data="printable" data-autoprint="1">
     <div class="max-w-5xl mx-auto">
         <div class="flex items-center justify-between mb-4 print:hidden">
             <div>
                 <h1 class="text-xl font-bold text-gray-900">Label Harga ({{ $products->count() }} produk)</h1>
                 <p class="text-sm text-gray-500">{{ $mode === 'wholesale' ? 'Harga Grosir' : 'Harga Ecer' }} · {{ $shop['name'] }}</p>
             </div>
-            <button @click="window.print()" class="btn-primary">Cetak</button>
+            <button @click="printPage()" class="btn-primary">Cetak</button>
         </div>
 
         <div id="label-sheet" class="label-sheet">
@@ -35,12 +32,5 @@
         </div>
     </div>
 
-    <script nonce="{{ $cspNonce }}">
-        window.addEventListener('load', () => {
-            if (new URLSearchParams(location.search).get('print') === '1') {
-                setTimeout(() => window.print(), 300);
-            }
-        });
-    </script>
 </body>
 </html>

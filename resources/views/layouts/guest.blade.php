@@ -17,8 +17,7 @@
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen bg-slate-900 flex flex-col sm:justify-center items-center pt-6 sm:pt-0 px-4">
             <!-- Subtle grid backdrop -->
-            <div class="pointer-events-none fixed inset-0 opacity-[0.06]"
-                 style="background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 40px 40px;"></div>
+            <div class="pointer-events-none fixed inset-0 opacity-[0.06] auth-grid" aria-hidden="true"></div>
             <div class="pointer-events-none fixed -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl"></div>
 
             <div class="relative z-10 w-full sm:max-w-md">

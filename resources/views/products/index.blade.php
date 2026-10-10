@@ -1,5 +1,5 @@
 <x-app-layout>
-<div x-data="{ selected: [], action: 'category' }">
+<div x-data="bulkProducts({{ json_encode($products->pluck('id'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }})">
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>
@@ -62,7 +62,7 @@
                         <tr>
                             <th class="table-th w-10">
                                 <input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                                       @change="selected = $event.target.checked ? @json($products->pluck('id')) : []"
+                                       @change="toggleAll($event.target.checked)"
                                        :checked="selected.length === @json($products->count()) && @json($products->count()) > 0">
                             </th>
                             <th class="table-th">Produk</th>
@@ -186,7 +186,7 @@
                             class="btn-primary !bg-white !text-slate-900 hover:!bg-gray-100">Terapkan</button>
                     <button type="submit" x-show="action === 'delete'"
                             class="btn-danger"
-                            @submit="if (action === 'delete' && ! confirm('Hapus ' + selected.length + ' produk terpilih?')) $event.preventDefault()">Hapus Terpilih</button>
+                            @submit="askBulkDelete($event)">Hapus Terpilih</button>
 
                     <button type="submit" form="label-form"
                             class="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 text-white text-sm font-semibold rounded-lg hover:bg-white/20 transition">

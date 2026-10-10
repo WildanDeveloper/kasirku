@@ -12,7 +12,24 @@
         </div>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8" x-data="pos()">
+    @php
+    // JSON aman ditaruh di atribut HTML (tanpa kutip mentah).
+    $attrJson = fn ($value) => json_encode($value, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+@endphp
+
+<div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8"
+         x-data="pos"
+         data-products="{{ $attrJson($products) }}"
+         data-customers="{{ $attrJson($customers) }}"
+         data-custom-prices="{{ $attrJson($customPrices) }}"
+         data-vouchers="{{ $attrJson($vouchers) }}"
+         data-tax-percent="{{ $taxPercent }}"
+         data-open-shift="{{ $openShift ? 1 : 0 }}"
+         data-held-sales="{{ $attrJson($heldSales) }}"
+         data-checkout-url="{{ route('pos.checkout') }}"
+         data-hold-url="{{ route('pos.hold') }}"
+         data-hold-destroy-url="{{ route('pos.hold.destroy', ':id') }}"
+         data-voucher-check-url="{{ route('vouchers.check', ':code') }}">
         @unless ($openShift)
             <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
                 <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
@@ -73,7 +90,7 @@
                     <div class="flex items-center gap-3">
                         <button type="button" x-show="cart.length > 0" @click="holdOrder()"
                                 class="text-xs font-semibold text-amber-600 hover:text-amber-700">Tahan</button>
-                        <button type="button" x-show="cart.length > 0" @click="cart = []"
+                        <button type="button" x-show="cart.length > 0" @click="clearCart()"
                                 class="text-xs font-semibold text-red-500 hover:text-red-700">Kosongkan</button>
                     </div>
                 </div>
@@ -107,7 +124,7 @@
                                        class="w-12 border-0 text-center text-sm focus:ring-0 p-0">
                                 <button type="button" @click="inc(item)" class="px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-gray-800">&plus;</button>
                             </div>
-                            <button type="button" @click="cart.splice(index, 1)" class="text-gray-300 hover:text-red-500 transition">
+                            <button type="button" @click="removeItem(index)" class="text-gray-300 hover:text-red-500 transition">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                                 </svg>
@@ -204,11 +221,11 @@
                         <div class="flex justify-between text-sm" x-show="!isCredit">
                             <span class="text-gray-500">Kembalian</span>
                             <span class="font-bold" :class="paidAmount >= total ? 'text-emerald-600' : 'text-gray-400'"
-                                  x-text="format(Math.max(paidAmount - total, 0))"></span>
+                                  x-text="changeText()"></span>
                         </div>
                         <div class="flex justify-between text-sm" x-show="isCredit">
                             <span class="text-gray-500">Sisa utang</span>
-                            <span class="font-bold text-amber-600" x-text="format(Math.max(total - paidAmount, 0))"></span>
+                            <span class="font-bold text-amber-600" x-text="remainingText()"></span>
                         </div>
                     </div>
 
@@ -255,310 +272,4 @@
         </div>
     </div>
 
-    <script nonce="{{ $cspNonce }}">
-        function pos() {
-            return {
-                products: @json($products),
-                customers: @json($customers),
-                customPrices: @json($customPrices),
-                taxPercent: @json($taxPercent),
-                openShift: @json((bool) $openShift),
-                heldSales: @json($heldSales),
-                search: '',
-                cart: [],
-                paymentMethod: 'cash',
-                discountInput: 0,
-                customerId: '',
-                applyTax: false,
-                isCredit: false,
-                paidAmount: 0,
-                loading: false,
-                message: '',
-                success: false,
-                receiptUrl: '',
-                voucherCode: '',
-                voucherName: '',
-                voucherDiscount: 0,
-                voucherMessage: '',
-                voucherError: false,
-                scanner: null,
-                scannerOpen: false,
-                scannerError: '',
-
-                get filtered() {
-                    const s = this.search.toLowerCase().trim();
-                    if (!s) return this.products;
-                    return this.products.filter(p =>
-                        p.name.toLowerCase().includes(s) || (p.barcode || '').includes(s)
-                    );
-                },
-
-                /** Harga produk sesuai pelanggan terpilih (khusus > grosir > ecer). */
-                priceOf(product) {
-                    if (!this.customerId) return product.selling_price;
-                    const customer = this.customers.find(c => c.id == this.customerId);
-                    if (!customer) return product.selling_price;
-                    const custom = this.customPrices[customer.id + ':' + product.id];
-                    if (custom) return custom;
-                    if (customer.is_wholesale) return product.price_wholesale || product.selling_price;
-                    return product.selling_price;
-                },
-
-                get subtotal() {
-                    return this.cart.reduce((sum, item) => sum + this.priceOf(item) * item.quantity, 0);
-                },
-
-                get discount() { return Math.max(0, Number(this.discountInput) || 0); },
-
-                get taxableBase() {
-                    return Math.max(0, this.subtotal - this.discount - this.voucherDiscount);
-                },
-
-                get taxAmount() {
-                    if (!this.applyTax) return 0;
-                    return Math.round(this.taxableBase * this.taxPercent / 100);
-                },
-
-                get total() {
-                    return this.taxableBase + this.taxAmount;
-                },
-
-                format(value) {
-                    return 'Rp ' + Number(value || 0).toLocaleString('id-ID');
-                },
-
-                add(product) {
-                    if (product.stock === 0) return;
-                    const existing = this.cart.find(i => i.id === product.id);
-                    if (existing) {
-                        if (existing.quantity < product.stock) existing.quantity++;
-                    } else {
-                        this.cart.push({ ...product, quantity: 1 });
-                    }
-                },
-
-                addFromSearch() {
-                    const exact = this.products.find(p => p.barcode && p.barcode === this.search.trim());
-                    const product = exact || this.filtered[0];
-                    if (product) {
-                        this.add(product);
-                        this.search = '';
-                        this.$refs.search?.focus();
-                    }
-                },
-
-                addByBarcode(code) {
-                    const product = this.products.find(p => p.barcode && p.barcode === code);
-                    if (product) {
-                        this.add(product);
-                        return true;
-                    }
-                    return false;
-                },
-
-                async startScanner() {
-                    this.scannerOpen = true;
-                    this.scannerError = '';
-
-                    try {
-                        const Html5Qrcode = await window.loadQrScanner();
-                        this.$nextTick(async () => {
-                            this.scanner = new Html5Qrcode('qr-reader');
-                            await this.scanner.start(
-                                { facingMode: 'environment' },
-                                { fps: 10, qrbox: { width: 240, height: 140 } },
-                                (decoded) => {
-                                    if (this.addByBarcode(decoded)) {
-                                        this.stopScanner();
-                                    } else {
-                                        this.scannerError = 'Barcode ' + decoded + ' tidak ditemukan.';
-                                    }
-                                },
-                                () => {}
-                            );
-                        });
-                    } catch (e) {
-                        this.scannerError = 'Kamera tidak bisa diakses. Pastikan izin kamera diizinkan, atau ketik barcode secara manual.';
-                    }
-                },
-
-                async stopScanner() {
-                    if (this.scanner) {
-                        try { await this.scanner.stop(); this.scanner.clear(); } catch (e) {}
-                        this.scanner = null;
-                    }
-                    this.scannerOpen = false;
-                    this.scannerError = '';
-                },
-
-                async applyVoucher() {
-                    const code = this.voucherCode.trim();
-                    if (! code) return;
-
-                    this.voucherMessage = '';
-                    const response = await fetch(
-                        @json(route('vouchers.check', ':code:')).replace(':code:', encodeURIComponent(code)) + '?subtotal=' + this.taxableBase,
-                        { headers: { 'Accept': 'application/json' } }
-                    );
-
-                    const data = await response.json().catch(() => ({}));
-
-                    if (!response.ok) {
-                        this.voucherError = true;
-                        this.voucherMessage = data.message || 'Voucher tidak valid.';
-                        return;
-                    }
-
-                    this.voucherError = false;
-                    this.voucherCode = data.code;
-                    this.voucherName = data.code + ' (' + data.label + ')';
-                    this.voucherDiscount = data.discount;
-                    this.voucherMessage = 'Voucher ' + data.code + ' dipakai: potongan ' + this.format(data.discount) + '.';
-                },
-
-                removeVoucher() {
-                    this.voucherCode = '';
-                    this.voucherName = '';
-                    this.voucherDiscount = 0;
-                    this.voucherMessage = '';
-                },
-
-                inc(item) {
-                    if (item.quantity < item.stock) item.quantity++;
-                },
-
-                dec(item) {
-                    if (item.quantity > 1) item.quantity--;
-                },
-
-                async holdOrder() {
-                    const response = await fetch(@json(route('pos.hold')), {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        },
-                        body: JSON.stringify({
-                            items: this.cart.map(i => ({ product_id: i.id, quantity: i.quantity })),
-                            discount: this.discount,
-                            customer_id: this.customerId || null,
-                        }),
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        this.heldSales.unshift({
-                            id: data.id,
-                            items: this.cart.map(i => ({ product_id: i.id, quantity: i.quantity })),
-                            discount: this.discount,
-                            customer_id: this.customerId || null,
-                            note: null,
-                        });
-                        this.cart = [];
-                        this.discountInput = 0;
-                        this.customerId = '';
-                    }
-                },
-
-                resumeHeld(held) {
-                    for (const item of held.items) {
-                        const product = this.products.find(p => p.id === item.product_id);
-                        if (! product) continue;
-                        const existing = this.cart.find(i => i.id === product.id);
-                        if (existing) {
-                            existing.quantity = Math.min(existing.quantity + item.quantity, product.stock);
-                        } else {
-                            this.cart.push({ ...product, quantity: Math.min(item.quantity, product.stock) });
-                        }
-                    }
-                    this.discountInput = held.discount || 0;
-                    this.customerId = held.customer_id || '';
-                    this.heldSales = this.heldSales.filter(h => h.id !== held.id);
-
-                    fetch(@json(route('pos.hold.destroy', ':id:')).replace(':id:', held.id), {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        },
-                    });
-                },
-
-                async deleteHeld(held) {
-                    const response = await fetch(@json(route('pos.hold.destroy', ':id:')).replace(':id:', held.id), {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        },
-                    });
-
-                    if (response.ok) {
-                        this.heldSales = this.heldSales.filter(h => h.id !== held.id);
-                    }
-                },
-
-                clamp(item) {
-                    if (!item.quantity || item.quantity < 1) item.quantity = 1;
-                    if (item.quantity > item.stock) item.quantity = item.stock;
-                },
-
-                async checkout() {
-                    this.loading = true;
-                    this.message = '';
-                    this.receiptUrl = '';
-
-                    try {
-                        const response = await fetch(@json(route('pos.checkout')), {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            },
-                            body: JSON.stringify({
-                                items: this.cart.map(i => ({ product_id: i.id, quantity: i.quantity })),
-                                discount: this.discount,
-                                customer_id: this.customerId || null,
-                                apply_tax: this.applyTax,
-                                is_credit: this.isCredit && !!this.customerId,
-                                voucher_code: this.voucherCode || null,
-                                paid_amount: this.isCredit
-                                    ? Math.min(this.paidAmount || 0, this.total)
-                                    : Math.max(this.paidAmount, this.total),
-                                payment_method: this.paymentMethod,
-                            }),
-                        });
-
-                        const data = await response.json();
-
-                        if (!response.ok) {
-                            throw new Error(data.message || 'Checkout gagal.');
-                        }
-
-                        this.success = true;
-                        this.message = this.isCredit
-                            ? 'Transaksi utang dicatat. Sisa: ' + this.format(data.remaining)
-                            : 'Transaksi berhasil. Kembalian: ' + this.format(data.change_amount);
-                        this.receiptUrl = data.receipt_url;
-
-                        for (const item of this.cart) {
-                            const product = this.products.find(p => p.id === item.id);
-                            if (product) product.stock -= item.quantity;
-                        }
-
-                        this.cart = [];
-                        this.discountInput = 0;
-                        this.customerId = '';
-                        this.applyTax = false;
-                        this.isCredit = false;
-                        this.paidAmount = 0;
-                        this.removeVoucher();
-                    } catch (error) {
-                        this.success = false;
-                        this.message = error.message;
-                    } finally {
-                        this.loading = false;
-                    }
-                },
-            };
-        }
-    </script>
 </x-app-layout>

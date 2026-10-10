@@ -27,9 +27,9 @@ class AddContentSecurityPolicy
         if (str_contains((string) $response->headers->get('Content-Type'), 'text/html')) {
             $response->headers->set('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
-                // 'unsafe-eval' wajib untuk Alpine (evaluasi expression).
-                "script-src 'self' 'nonce-{$nonce}' 'unsafe-eval'",
-                "style-src 'self' 'unsafe-inline'",
+                // Alpine CSP build: tanpa eval, script inline wajib punya nonce.
+                "script-src 'self' 'nonce-{$nonce}'",
+                "style-src 'self'",
                 "img-src 'self' data: blob:",
                 "font-src 'self' data:",
                 "connect-src 'self'",

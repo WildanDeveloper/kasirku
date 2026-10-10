@@ -1,6 +1,30 @@
-import Alpine from 'alpinejs';
+import Alpine from '@alpinejs/csp';
+import pos from './components/pos.js';
+import {
+    bulkProducts,
+    confirmSubmit,
+    copyable,
+    dropdown,
+    flash,
+    modal,
+    printable,
+    rowEditor,
+    tableTools,
+} from './components/ui.js';
 
 window.Alpine = Alpine;
+
+// Alpine.data() diperlukan agar halaman bisa memakai CSP build: komponen
+// didefinisikan di JS (bukan fungsi global di dalam ekspresi x-data).
+Alpine.data('pos', pos);
+Alpine.data('confirmSubmit', confirmSubmit);
+Alpine.data('printable', printable);
+Alpine.data('copyable', copyable);
+Alpine.data('rowEditor', rowEditor);
+Alpine.data('tableTools', tableTools);
+Alpine.data('dropdown', dropdown);
+Alpine.data('modal', modal);
+Alpine.data('flash', flash);
 
 let qrLoader = null;
 

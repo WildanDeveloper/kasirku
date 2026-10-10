@@ -6,7 +6,7 @@
         </div>
     </x-slot>
 
-    <div x-data class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+    <div x-data="confirmSubmit" class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         @if (session('success'))
             <div class="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">{{ session('success') }}</div>
         @endif
@@ -43,7 +43,7 @@
                                         </td>
                                         <td class="table-td text-right font-bold text-red-600">Rp {{ number_format($expense->amount, 0, ',', '.') }}</td>
                                         <td class="table-td text-right">
-                                            <form method="POST" action="{{ route('expenses.destroy', $expense) }}" @submit="if (! confirm('Hapus pengeluaran ini?')) $event.preventDefault()">
+                                            <form method="POST" action="{{ route('expenses.destroy', $expense) }}" @submit="ask($event, 'Hapus pengeluaran ini?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button class="text-sm font-semibold text-red-500 hover:text-red-700">Hapus</button>

@@ -42,20 +42,32 @@
 
                 @php
                     $maxValue = max(1, collect($last7)->max('revenue'));
+                    $barWidth = 22;
+                    $gap = 8;
+                    $groupWidth = ($barWidth * 2) + $gap;
+                    $chartWidth = $groupWidth * count($last7);
+                    $chartHeight = 100;
                 @endphp
-                <div class="flex items-end gap-2 sm:gap-4 h-48">
+                <svg viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" class="w-full h-48" role="img"
+                     aria-label="Grafik omzet dan laba 7 hari terakhir" preserveAspectRatio="none">
+                    @foreach ($last7 as $index => $day)
+                        @php
+                            $x = $index * $groupWidth;
+                            $revenueHeight = max(2, round($day['revenue'] / $maxValue * $chartHeight));
+                            $profitHeight = max(2, round($day['profit'] / $maxValue * $chartHeight));
+                        @endphp
+                        <g>
+                            <title>{{ $day['label'] }} — Omzet Rp {{ number_format($day['revenue'], 0, ',', '.') }}, Laba Rp {{ number_format($day['profit'], 0, ',', '.') }}</title>
+                            <rect x="{{ $x }}" y="{{ $chartHeight - $revenueHeight }}" width="{{ $barWidth }}" height="{{ $revenueHeight }}"
+                                  fill="#10b981" fill-opacity="0.8" rx="2" />
+                            <rect x="{{ $x + $barWidth + $gap }}" y="{{ $chartHeight - $profitHeight }}" width="{{ $barWidth }}" height="{{ $profitHeight }}"
+                                  fill="#60a5fa" fill-opacity="0.75" rx="2" />
+                        </g>
+                    @endforeach
+                </svg>
+                <div class="flex items-end gap-2 sm:gap-4 -mt-2">
                     @foreach ($last7 as $day)
-                        <div class="flex-1 flex flex-col items-center gap-2">
-                            <div class="flex-1 w-full flex items-end gap-1">
-                                <div class="flex-1 rounded-t bg-emerald-500/80 hover:bg-emerald-500 transition"
-                                     style="height: {{ max(2, round($day['revenue'] / $maxValue * 100)) }}%"
-                                     title="Omzet Rp {{ number_format($day['revenue'], 0, ',', '.') }}"></div>
-                                <div class="flex-1 rounded-t bg-blue-400/70 hover:bg-blue-400 transition"
-                                     style="height: {{ max(2, round($day['profit'] / $maxValue * 100)) }}%"
-                                     title="Laba Rp {{ number_format($day['profit'], 0, ',', '.') }}"></div>
-                            </div>
-                            <span class="text-[10px] text-gray-500 text-center leading-tight">{{ $day['label'] }}</span>
-                        </div>
+                        <div class="flex-1 text-[10px] text-gray-500 text-center leading-tight">{{ $day['label'] }}</div>
                     @endforeach
                 </div>
                 <div class="flex items-center gap-4 mt-3 text-[11px] text-gray-500">

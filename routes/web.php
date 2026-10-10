@@ -39,7 +39,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/shifts/{shift}/close', [CashShiftController::class, 'close'])->name('shifts.close');
 
     // Kartu produk (read-only, semua user)
-    Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
+    Route::get('/products/{product}', [ProductController::class, 'show'])
+        ->whereNumber('product')
+        ->name('products.show');
 
     // Khusus admin
     Route::middleware('admin')->group(function () {

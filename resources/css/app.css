@@ -3,6 +3,19 @@
 @tailwind utilities;
 
 @layer base {
+    /* Alpine menghapus x-cloak setelah inisialisasi; sebelum itu elemen disembunyikan. */
+    [x-cloak] {
+        display: none !important;
+    }
+
+    /* Latar grid halus untuk halaman login */
+    .auth-grid {
+        background-image:
+            linear-gradient(#fff 1px, transparent 1px),
+            linear-gradient(90deg, #fff 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+
     ::-webkit-scrollbar {
         width: 8px;
         height: 8px;

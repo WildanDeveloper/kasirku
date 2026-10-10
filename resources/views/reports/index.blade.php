@@ -42,16 +42,36 @@
                 @if ($daily->isEmpty())
                     <p class="py-8 text-center text-sm text-gray-500">Tidak ada data.</p>
                 @else
-                    @php $maxRevenue = $daily->max('revenue') ?: 1; @endphp
-                    <div class="flex items-end gap-2 h-40 mb-4">
-                        @foreach ($daily->sortBy('day')->values() as $day)
-                            @php $height = max(round($day->revenue / $maxRevenue * 100), 4); @endphp
-                            <div class="flex-1 flex flex-col items-center gap-1 group relative" title="{{ $day->day }}: Rp {{ number_format($day->revenue, 0, ',', '.') }}">
-                                <div class="w-full rounded-t-md bg-emerald-500/80 group-hover:bg-emerald-500 transition" style="height: {{ $height }}%"></div>
-                                <span class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($day->day)->format('d/m') }}</span>
-                            </div>
-                        @endforeach
-                    </div>
+                    @php
+                        $days = $daily->sortBy('day')->values();
+                        $maxRevenue = $daily->max('revenue') ?: 1;
+                        $barWidth = 18;
+                        $gap = 8;
+                        $groupWidth = $barWidth + $gap;
+                        $chartWidth = max(1, $groupWidth * $days->count());
+                        $chartHeight = 100;
+                    @endphp
+                    @if ($days->isNotEmpty())
+                        <svg viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" class="w-full h-40 mb-2" role="img"
+                             aria-label="Grafik omzet harian" preserveAspectRatio="none">
+                            @foreach ($days as $index => $day)
+                                @php
+                                    $barHeight = max(round($day->revenue / $maxRevenue * $chartHeight), 4);
+                                    $x = $index * $groupWidth;
+                                @endphp
+                                <g>
+                                    <title>{{ \Carbon\Carbon::parse($day->day)->format('d/m/Y') }}: Rp {{ number_format($day->revenue, 0, ',', '.') }}</title>
+                                    <rect x="{{ $x }}" y="{{ $chartHeight - $barHeight }}" width="{{ $barWidth }}" height="{{ $barHeight }}"
+                                          fill="#10b981" fill-opacity="0.8" rx="2" />
+                                </g>
+                            @endforeach
+                        </svg>
+                        <div class="flex -mt-2">
+                            @foreach ($days as $day)
+                                <div class="flex-1 text-[10px] text-gray-400 text-center">{{ \Carbon\Carbon::parse($day->day)->format('d/m') }}</div>
+                            @endforeach
+                        </div>
+                    @endif
                     <div class="overflow-x-auto border-t border-gray-100 pt-3">
                         <table class="w-full text-sm">
                             <thead>

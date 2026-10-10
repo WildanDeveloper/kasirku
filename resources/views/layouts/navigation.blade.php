@@ -29,7 +29,7 @@
 
     <!-- User -->
     <div class="p-3">
-        <div x-data="{ open: false }" class="relative">
+        <div x-data="dropdown" class="relative">
             <button @click="open = ! open"
                     class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-slate-800 transition">
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white">
