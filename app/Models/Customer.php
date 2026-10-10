@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Customer extends Model
 {
-    protected $fillable = ['name', 'phone', 'address', 'is_wholesale'];
+    protected $fillable = ['name', 'phone', 'address', 'is_wholesale', 'points'];
 
-    protected $casts = ['is_wholesale' => 'boolean'];
+    protected $casts = ['is_wholesale' => 'boolean', 'points' => 'integer'];
 
     public function sales(): HasMany
     {
@@ -19,6 +19,35 @@ class Customer extends Model
     public function prices(): HasMany
     {
         return $this->hasMany(CustomerPrice::class);
+    }
+
+    public function deposits(): HasMany
+    {
+        return $this->hasMany(CustomerDeposit::class);
+    }
+
+    public function loyaltyTransactions(): HasMany
+    {
+        return $this->hasMany(LoyaltyTransaction::class);
+    }
+
+    /** Saldo kasbon (deposit) pelanggan. */
+    public function depositBalance(): int
+    {
+        return (int) $this->deposits()
+            ->selectRaw('COALESCE(SUM(CASE WHEN type = \'in\' THEN amount ELSE -amount END), 0) as saldo')
+            ->value('saldo');
+    }
+
+    /** Nilai tukar 1 poin dalam rupiah (dari pengaturan). */
+    public function pointValue(): int
+    {
+        return max(1, (int) Setting::get('loyalty_point_value'));
+    }
+
+    public function pointValueTotal(): int
+    {
+        return (int) $this->points * $this->pointValue();
     }
 
     /** Sisa utang pelanggan dari semua transaksi kredit. */

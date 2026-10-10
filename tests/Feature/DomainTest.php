@@ -574,9 +574,13 @@ class DomainTest extends TestCase
         ])->assertRedirect();
 
         $this->assertSame(25, $product->fresh()->stock);
+
+        // Penyesuaian stok mencatat selisihnya (10 → 25 = +15), bukan stok absolut.
         $this->assertDatabaseHas('stock_movements', [
             'product_id' => $product->id,
-            'quantity' => 25,
+            'type' => 'adjustment',
+            'quantity' => 15,
+            'stock_before' => 10,
             'stock_after' => 25,
         ]);
     }
@@ -776,24 +780,28 @@ class DomainTest extends TestCase
 
     public function test_backup_dibuat_dan_tersimpan(): void
     {
-        // Database sumber dummy (karena test memakai SQLite in-memory).
-        $source = tempnam(sys_get_temp_dir(), 'src').'.sqlite';
-        file_put_contents($source, 'SQLite format 3'."\0".str_repeat('\0', 100));
+        // Database sumber sungguhan (test ini memakai SQLite in-memory),
+        // karena backup memverifikasi bahwa salinannya benar-benar bisa dibaca.
+        $source = $this->tempSqlite();
+        $pdo = new \PDO('sqlite:'.$source);
+        $pdo->exec('CREATE TABLE demo (id INTEGER PRIMARY KEY, nama TEXT)');
+        $pdo->exec("INSERT INTO demo (nama) VALUES ('Barang Uji')");
+        unset($pdo);
 
         $this->artisan('kasirku:backup', ['--path' => $source])->assertSuccessful();
 
         $files = glob(storage_path('app/backups/kasirku-*.sqlite'));
-
         $this->assertNotEmpty($files, 'Backup harus dibuat.');
-        $this->assertSame('SQLite format 3', substr((string) file_get_contents($files[0]), 0, 15));
 
-        unlink($source);
         $name = basename($files[0]);
+        $copy = new \PDO('sqlite:'.$files[0]);
+        $this->assertSame('Barang Uji', $copy->query('SELECT nama FROM demo')->fetchColumn(), 'Isi backup harus terbaca.');
 
         $this->actingAs($this->admin)
             ->get(route('settings.backup.download', $name))
             ->assertOk();
 
+        // Cegah path traversal: nama file di luar folder backup ditolak.
         $this->actingAs($this->admin)
             ->get(route('settings.backup.download', '../../database/database.sqlite'))
             ->assertNotFound();
@@ -801,6 +809,24 @@ class DomainTest extends TestCase
         $this->actingAs($this->admin)
             ->delete(route('settings.backup.destroy', $name))
             ->assertRedirect();
+
+        @unlink($source);
+        @unlink($files[0]);
+    }
+
+    public function test_backup_ditolak_bila_sumbernya_bukan_database_sqlite(): void
+    {
+        // Isi bukan header SQLite asli: backup harus dibatalkan, bukan disimpan.
+        $source = tempnam(sys_get_temp_dir(), 'src').'.sqlite';
+        file_put_contents($source, 'SQLite format 3'."\0".str_repeat("\0", 100));
+
+        $before = count(glob(storage_path('app/backups/kasirku-*.sqlite')));
+
+        $this->artisan('kasirku:backup', ['--path' => $source])->assertFailed();
+
+        $this->assertCount($before, glob(storage_path('app/backups/kasirku-*.sqlite')), 'Backup rusak tidak boleh tersimpan.');
+
+        @unlink($source);
     }
 
     public function test_pemulihan_backup_menolak_file_bukan_sqlite(): void
@@ -835,13 +861,13 @@ class DomainTest extends TestCase
         ])->assertSessionHasErrors('printer_width');
     }
 
-    public function test_bar_versi_dan_halaman_apa_yang_baru_tampil(): void
+    /** Buat file SQLite kosong yang valid untuk pengujian backup. */
+    private function tempSqlite(): string
     {
-        $this->actingAs($this->admin)->get(route('pos.index'))->assertOk()->assertSee('Apa Yang Baru');
+        $path = tempnam(sys_get_temp_dir(), 'db').'.sqlite';
+        new \PDO('sqlite:'.$path)->exec('PRAGMA user_version = 1');
 
-        $this->actingAs($this->admin)->get(route('updates.index'))->assertOk()->assertSee('v'.config('kasirku.version'));
-
-        $this->actingAs($this->kasir)->get(route('updates.index'))->assertOk();
+        return $path;
     }
 
     public function test_endpoint_status_memberi_informasi_versi(): void

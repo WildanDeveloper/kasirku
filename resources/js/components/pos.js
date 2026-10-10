@@ -27,6 +27,10 @@ export default function pos() {
         success: false,
         receiptUrl: '',
         heldNote: '',
+        tiers: {},
+        loyaltyMaxRedeemPercent: 50,
+        redeemPoints: 0,
+        useDeposit: 0,
         voucherCode: '',
         voucherName: '',
         voucherDiscount: 0,
@@ -50,6 +54,8 @@ export default function pos() {
             this.customers = this.parse(data.customers) ?? [];
             this.customPrices = this.parse(data.customPrices) ?? {};
             this.vouchers = this.parse(data.vouchers) ?? [];
+            this.tiers = this.parse(data.tiers) ?? {};
+            this.loyaltyMaxRedeemPercent = Number(data.loyaltyMaxRedeemPercent || 50);
             this.taxPercent = Number(data.taxPercent || 0);
             this.openShift = data.openShift === '1';
             this.heldSales = this.parse(data.heldSales) ?? [];
@@ -81,9 +87,29 @@ export default function pos() {
             );
         },
 
-        /** Harga produk sesuai pelanggan terpilih (khusus > grosir > ecer). */
-        priceOf(product) {
-            if (!this.customerId) return product.selling_price;
+        /** Harga dasar tier untuk jumlah tertentu (ecer bila tak ada tier). */
+        tierPrice(product, quantity) {
+            const tiers = this.tiers[product.id] ?? [];
+            let price = product.price_wholesale || product.selling_price;
+
+            for (const tier of tiers) {
+                if (tier.min_qty <= quantity) {
+                    price = tier.price;
+                    break;
+                }
+            }
+
+            return price;
+        },
+
+        /** Harga produk: khusus pelanggan > tier grosir > grosir > ecer. */
+        priceOf(product, quantity) {
+            const qty = quantity ?? (this.cart.find((i) => i.id === product.id)?.quantity ?? 1);
+
+            if (!this.customerId) {
+                const tiers = this.tiers[product.id] ?? [];
+                return tiers.length ? this.tierPrice(product, qty) : product.selling_price;
+            }
 
             const customer = this.customers.find((c) => c.id == this.customerId);
             if (!customer) return product.selling_price;
@@ -91,13 +117,39 @@ export default function pos() {
             const custom = this.customPrices[customer.id + ':' + product.id];
             if (custom) return custom;
 
-            if (customer.is_wholesale) return product.price_wholesale || product.selling_price;
+            if (customer.is_wholesale) return this.tierPrice(product, qty);
 
-            return product.selling_price;
+            const tiers = this.tiers[product.id] ?? [];
+            return tiers.length ? this.tierPrice(product, qty) : product.selling_price;
         },
 
         get customer() {
             return this.customers.find((c) => c.id == this.customerId) ?? null;
+        },
+
+        get selectedCustomer() {
+            return this.customer ?? null;
+        },
+
+        get pointsBalance() {
+            return this.customer ? this.customer.points : 0;
+        },
+
+        get pointValue() {
+            return this.customer ? (this.customer.points_value || 100) : 100;
+        },
+
+        get pointsDiscount() {
+            const points = Math.min(this.redeemPoints || 0, this.pointsBalance);
+            return points * this.pointValue;
+        },
+
+        get depositBalance() {
+            return this.customer ? this.customer.deposit : 0;
+        },
+
+        get depositUsed() {
+            return Math.max(0, Math.min(this.useDeposit || 0, this.depositBalance));
         },
 
         get isWholesale() {
@@ -113,7 +165,11 @@ export default function pos() {
         },
 
         get taxableBase() {
-            return Math.max(0, this.subtotal - this.discount - this.voucherDiscount);
+            return Math.max(0, this.subtotal - this.discount - this.voucherDiscount - this.pointsDiscount);
+        },
+
+        get cashDue() {
+            return Math.max(0, this.total - this.depositUsed);
         },
 
         get taxAmount() {
@@ -371,9 +427,11 @@ export default function pos() {
                         apply_tax: this.applyTax,
                         is_credit: this.isCredit && !!this.customerId,
                         voucher_code: this.voucherCode || null,
+                        redeem_points: Number(this.redeemPoints) || 0,
+                        use_deposit: this.depositUsed,
                         paid_amount: this.isCredit
-                            ? Math.min(this.paidAmount || 0, this.total)
-                            : Math.max(this.paidAmount, this.total),
+                            ? Math.min(this.paidAmount || 0, this.cashDue)
+                            : Math.max(this.paidAmount, this.cashDue),
                         payment_method: this.paymentMethod,
                     }),
                 });

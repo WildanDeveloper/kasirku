@@ -8,7 +8,7 @@ return [
     | Naikkan nomor versi setiap ada rilis baru. Tampilan versi, deteksi
     | update, dan halaman "Apa Yang Baru" membaca nilai dari sini.
     */
-    'version' => '1.6.0',
+    'version' => '1.7.0',
 
     'released_at' => '2026-10-11',
 
@@ -21,6 +21,22 @@ return [
     | Kunci = nomor versi. Dipakai halaman "Apa Yang Baru".
     */
     'changelog' => [
+        '1.7.0' => [
+            'date' => '11 Oktober 2026',
+            'features' => [
+                'Harga grosir bertingkat: harga otomatis per jumlah pembelian (mis. 10 pcs ke atas dapat harga khusus).',
+                'Poin loyalitas pelanggan: poin otomatis dari belanja, bisa ditukar jadi potongan, dan riwayat penukaran.',
+                'Kasbon pelanggan: pelanggan bayar di muka, saldo kasbon dipakai otomatis sebagai pembayaran.',
+                'Modul pembelian & supplier: barang masuk menambah stok dan memperbarui harga beli, lengkap dengan utang supplier dan pembayaran.',
+                'Harga jual pokok (HPP) kini memakai harga beli saat transaksi, jadi laporan laba tidak berubah lagi saat harga beli produk berubah.',
+                'Stok opname: hitung fisik per kategori, selisih otomatis tercatat sebagai penyesuaian stok.',
+                'X-Report dan Z-Report: rekap penjualan per kasir per hari plus daftar shift, siap cetak.',
+                'Struk WhatsApp & PDF: kirim ringkasan struk lewat WhatsApp, salin ringkasan, atau simpan sebagai PDF.',
+                'Pusat notifikasi: peringatan stok menipis, shift yang menggantung, dan utang pelanggan/supplier yang lewat tempo (otomatis setiap 30 menit).',
+                'Pengaturan baru: persentase poin, nilai tukar poin, batas penukaran, dan gateway WhatsApp (Fonnte/WAHA).',
+                'Perbaikan: backup database diverifikasi sebelum disimpan sehingga file rusak tidak pernah dianggap cadangan.',
+            ],
+        ],
         '1.6.0' => [
             'date' => '11 Oktober 2026',
             'features' => [

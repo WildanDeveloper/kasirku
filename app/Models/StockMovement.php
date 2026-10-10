@@ -50,7 +50,8 @@ class StockMovement extends Model
             return static::create([
                 'product_id' => $product->id,
                 'type' => $type,
-                'quantity' => $quantity,
+                // Untuk penyesuaian, $quantity adalah stok absolut akhir, jadi dicatat sebagai selisih.
+                'quantity' => $type === 'adjustment' ? $stockAfter - $stockBefore : $quantity,
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
                 'note' => $note,

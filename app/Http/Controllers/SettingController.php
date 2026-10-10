@@ -23,6 +23,13 @@ class SettingController extends Controller
             'tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'printer_width' => ['nullable', 'in:58,80,a4'],
             'printer_auto_print' => ['nullable', 'in:0,1'],
+            'loyalty_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'loyalty_point_value' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'loyalty_max_redeem_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'wa_url' => ['nullable', 'url', 'max:255'],
+            'wa_token' => ['nullable', 'string', 'max:255'],
+            'wa_admin_number' => ['nullable', 'string', 'max:20'],
+            'low_stock_alert' => ['nullable', 'in:0,1'],
         ]);
 
         foreach ($data as $key => $value) {

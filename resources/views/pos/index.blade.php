@@ -23,6 +23,8 @@
          data-customers="{{ $attrJson($customers) }}"
          data-custom-prices="{{ $attrJson($customPrices) }}"
          data-vouchers="{{ $attrJson($vouchers) }}"
+         data-tiers="{{ $attrJson($tiers) }}"
+         data-loyalty-max-redeem-percent="{{ (float) \App\Models\Setting::get('loyalty_max_redeem_percent') }}"
          data-tax-percent="{{ $taxPercent }}"
          data-open-shift="{{ $openShift ? 1 : 0 }}"
          data-held-sales="{{ $attrJson($heldSales) }}"
@@ -186,6 +188,27 @@
                         Pajak <span class="font-semibold" x-text="taxPercent + '%'"></span>
                         <span class="ml-auto text-gray-500" x-text="'+' + format(taxAmount)"></span>
                     </label>
+
+                    <div x-show="customer" x-cloak class="rounded-lg bg-blue-50 border border-blue-100 p-3 space-y-2">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-blue-800">Poin <span x-text="pointsBalance"></span></span>
+                            <span class="text-blue-600" x-text="format(pointsBalance * pointValue)"></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" min="0" x-model.number="redeemPoints" @input="if (redeemPoints > maxRedeemPoints) redeemPoints = maxRedeemPoints"
+                                   class="form-input !py-1 text-xs" placeholder="Tukar poin">
+                            <span class="text-[10px] text-blue-700 whitespace-nowrap">maks <span x-text="maxRedeemPoints"></span></span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-blue-800">Kasbon</span>
+                            <span class="text-blue-600" x-text="format(depositBalance)"></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" min="0" x-model.number="useDeposit"
+                                   class="form-input !py-1 text-xs" placeholder="Pakai kasbon (Rp)">
+                            <span class="text-[10px] text-blue-700 whitespace-nowrap">maks <span x-text="format(depositBalance)"></span></span>
+                        </div>
+                    </div>
 
                     <div class="flex items-end justify-between">
                         <span class="text-sm font-medium text-gray-500">Total</span>

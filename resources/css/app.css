@@ -48,8 +48,17 @@
     .btn-danger {
         @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition;
     }
+    .btn-ghost {
+        @apply inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-white text-gray-700 text-xs font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition;
+    }
     .form-input {
         @apply block w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500;
+    }
+    .form-label {
+        @apply block text-xs font-semibold text-gray-600 mb-1;
+    }
+    .badge {
+        @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold;
     }
     .table-th {
         @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500;
@@ -98,6 +107,26 @@
         width: 100%;
         box-shadow: none !important;
         border: none !important;
+    }
+}
+
+/* Laporan X/Z: cetak semua isi halaman, sembunyikan tombol & navigasi */
+@media print {
+    body.print-report nav,
+    body.print-report header,
+    body.print-report aside,
+    body.print-report .print\:hidden {
+        display: none !important;
+    }
+    body.print-report .page-card {
+        box-shadow: none;
+        break-inside: avoid;
+    }
+    body.print-report table {
+        page-break-inside: auto;
+    }
+    body.print-report tr {
+        page-break-inside: avoid;
     }
 }
 

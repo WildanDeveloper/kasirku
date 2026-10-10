@@ -3,18 +3,23 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\CashShiftController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\CashReportController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerWalletController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\PosController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StockMovementController;
+use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\UpdateController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VoucherController;
@@ -64,6 +69,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('products.show');
 
     // Khusus admin
+    // X/Z report dipakai kasir saat tutup kas, begitu pula kartu pelanggan
+    // untuk melihat kasbon, poin, dan riwayat belanja.
+    Route::get('/reports/x', [CashReportController::class, 'xReport'])->name('reports.x');
+    Route::get('/reports/z', [CashReportController::class, 'zReport'])->name('reports.z');
+    Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+
     Route::middleware('admin')->group(function () {
         Route::get('/products/import', [ProductController::class, 'importForm'])->name('products.import.form');
         Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
@@ -76,13 +87,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/stocks', [StockMovementController::class, 'index'])->name('stocks.index');
         Route::post('/stocks', [StockMovementController::class, 'store'])->name('stocks.store');
 
+        // Stok opname
+        Route::get('/opnames', [StockOpnameController::class, 'index'])->name('opnames.index');
+        Route::get('/opnames/create', [StockOpnameController::class, 'create'])->name('opnames.create');
+        Route::post('/opnames', [StockOpnameController::class, 'store'])->name('opnames.store');
+        Route::get('/opnames/{opname}', [StockOpnameController::class, 'show'])->name('opnames.show');
+        Route::post('/opnames/{opname}/items', [StockOpnameController::class, 'updateItems'])->name('opnames.items.update');
+        Route::post('/opnames/{opname}/finish', [StockOpnameController::class, 'finish'])->name('opnames.finish');
+        Route::delete('/opnames/{opname}', [StockOpnameController::class, 'destroy'])->name('opnames.destroy');
+
+        // Pembelian & supplier
+        Route::get('/purchases', [PurchaseController::class, 'index'])->name('purchases.index');
+        Route::get('/purchases/create', [PurchaseController::class, 'create'])->name('purchases.create');
+        Route::post('/purchases', [PurchaseController::class, 'store'])->name('purchases.store');
+        Route::get('/purchases/{purchase}', [PurchaseController::class, 'show'])->name('purchases.show');
+        Route::post('/purchases/{purchase}/pay', [PurchaseController::class, 'pay'])->name('purchases.pay');
+        Route::post('/purchases/{purchase}/cancel', [PurchaseController::class, 'cancel'])->name('purchases.cancel');
+        Route::get('/suppliers', [PurchaseController::class, 'suppliers'])->name('suppliers.index');
+        Route::post('/suppliers', [PurchaseController::class, 'storeSupplier'])->name('suppliers.store');
+        Route::put('/suppliers/{supplier}', [PurchaseController::class, 'updateSupplier'])->name('suppliers.update');
+        Route::delete('/suppliers/{supplier}', [PurchaseController::class, 'destroySupplier'])->name('suppliers.destroy');
+
+        // Notifikasi
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
+        Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
-
         Route::resource('customers', CustomerController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
         Route::post('/customers/{customer}/prices', [CustomerController::class, 'storePrice'])->name('customers.prices.store');
         Route::delete('/customers/{customer}/prices/{customerPrice}', [CustomerController::class, 'destroyPrice'])->name('customers.prices.destroy');
+        Route::post('/customers/{customer}/deposits', [CustomerWalletController::class, 'storeDeposit'])->name('customers.deposits.store');
+        Route::post('/customers/{customer}/deposits/withdraw', [CustomerWalletController::class, 'storeWithdrawal'])->name('customers.deposits.withdraw');
+        Route::post('/customers/{customer}/points', [CustomerWalletController::class, 'storePoints'])->name('customers.points.store');
 
         Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
         Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');

@@ -31,7 +31,7 @@ class ReportController extends Controller
             ->join('products', 'products.id', '=', 'sale_items.product_id')
             ->whereBetween('sales.created_at', [$start, $end]);
 
-        $cogs = (clone $items)->selectRaw('SUM(sale_items.quantity * products.cost_price) as cogs')->value('cogs') ?? 0;
+        $cogs = (clone $items)->selectRaw('SUM(sale_items.quantity * COALESCE(sale_items.cost_at_sale, products.cost_price)) as cogs')->value('cogs') ?? 0;
 
         $returns = SaleReturn::whereBetween('created_at', [$start, $end]);
         $returnsTotal = (int) (clone $returns)->sum('total');
@@ -70,7 +70,7 @@ class ReportController extends Controller
                     ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
                     ->join('products', 'products.id', '=', 'sale_items.product_id')
                     ->whereBetween('sales.created_at', [$dayStart, $dayEnd])
-                    ->selectRaw('SUM(sale_items.quantity * products.cost_price) as cogs')
+                    ->selectRaw('SUM(sale_items.quantity * COALESCE(sale_items.cost_at_sale, products.cost_price)) as cogs')
                     ->value('cogs') ?? 0);
 
                 $day->expense = Expense::whereBetween('spent_at', [$dayStart, $dayEnd])->sum('amount');
@@ -123,7 +123,7 @@ class ReportController extends Controller
                         ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
                         ->join('products', 'products.id', '=', 'sale_items.product_id')
                         ->whereBetween('sales.created_at', [$dayStart, $dayEnd])
-                        ->selectRaw('SUM(sale_items.quantity * products.cost_price) as cogs')
+                        ->selectRaw('SUM(sale_items.quantity * COALESCE(sale_items.cost_at_sale, products.cost_price)) as cogs')
                         ->value('cogs') ?? 0);
 
                     $returns = (int) SaleReturn::whereBetween('created_at', [$dayStart, $dayEnd])->sum('total');

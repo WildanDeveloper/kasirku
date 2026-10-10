@@ -13,6 +13,7 @@ class SaleItem extends Model
         'product_id',
         'quantity',
         'price',
+        'cost_at_sale',
         'subtotal',
     ];
 
@@ -34,5 +35,11 @@ class SaleItem extends Model
     public function returnedQuantity(): int
     {
         return (int) $this->returnItems()->sum('quantity');
+    }
+
+    /** Harga jual pokok saat transaksi (fallback ke harga beli produk saat ini). */
+    public function costPrice(): int
+    {
+        return (int) ($this->cost_at_sale ?? $this->product?->cost_price ?? 0);
     }
 }

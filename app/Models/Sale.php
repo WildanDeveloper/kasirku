@@ -37,6 +37,16 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class);
     }
 
+    public function deposits(): HasMany
+    {
+        return $this->hasMany(CustomerDeposit::class);
+    }
+
+    public function loyaltyTransactions(): HasMany
+    {
+        return $this->hasMany(LoyaltyTransaction::class);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

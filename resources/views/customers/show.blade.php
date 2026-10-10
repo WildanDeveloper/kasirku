@@ -113,6 +113,72 @@
                             <p class="text-sm text-gray-500">Belum ada harga khusus.</p>
                         @endforelse
                     </div>
+
+                <div class="page-card p-5">
+                    <h3 class="section-title mb-1">Kasbon (Deposit)</h3>
+                    <p class="text-xs text-gray-500 mb-3">Uang pelanggan yang dibayar di muka, dipakai otomatis sebagai pembayaran saat belanja.</p>
+
+                    <div class="flex items-baseline gap-2 mb-3">
+                        <span class="text-2xl font-bold {{ $depositBalance > 0 ? 'text-emerald-700' : 'text-gray-400' }}">Rp {{ number_format($depositBalance, 0, ',', '.') }}</span>
+                    </div>
+
+                    <form method="POST" action="{{ route('customers.deposits.store', $customer) }}" class="flex gap-2 mb-3">
+                        @csrf
+                        <input type="number" name="amount" class="form-input" placeholder="Tambah kasbon (Rp)" min="1" required>
+                        <button class="btn-primary !px-3">+</button>
+                    </form>
+
+                    @if ($depositBalance > 0)
+                        <form method="POST" action="{{ route('customers.deposits.withdraw', $customer) }}" class="flex gap-2 mb-3"
+                              onsubmit="return confirm('Kurangi kasbon pelanggan ini?')">
+                            @csrf
+                            <input type="number" name="amount" class="form-input" placeholder="Kurangi kasbon (Rp)" min="1" max="{{ $depositBalance }}" required>
+                            <button class="btn-secondary !px-3">&minus;</button>
+                        </form>
+                    @endif
+
+                    <div class="space-y-1.5 text-xs">
+                        @forelse ($deposits as $deposit)
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-gray-500">{{ $deposit->created_at->format('d/m/Y') }} &middot; {{ $deposit->note ?? '-' }}</span>
+                                <span class="font-semibold {{ $deposit->type === 'in' ? 'text-emerald-700' : 'text-rose-600' }}">
+                                    {{ $deposit->type === 'in' ? '+' : '-' }}{{ number_format($deposit->amount, 0, ',', '.') }}
+                                </span>
+                            </div>
+                        @empty
+                            <p class="text-gray-400">Belum ada kasbon.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="page-card p-5">
+                    <h3 class="section-title mb-1">Poin Loyalitas</h3>
+                    <p class="text-xs text-gray-500 mb-3">1 poin = Rp {{ number_format($pointValue, 0, ',', '.') }}. Maksimal penukaran diatur di Pengaturan.</p>
+
+                    <div class="flex items-baseline gap-2 mb-3">
+                        <span class="text-2xl font-bold text-blue-700">{{ number_format($customer->points) }}</span>
+                        <span class="text-xs text-gray-500">poin &middot; setara Rp {{ number_format($customer->points * $pointValue, 0, ',', '.') }}</span>
+                    </div>
+
+                    <form method="POST" action="{{ route('customers.points.store', $customer) }}" class="flex gap-2 mb-3">
+                        @csrf
+                        <input type="number" name="points" class="form-input" placeholder="+/- poin" required>
+                        <button class="btn-secondary !px-3">Simpan</button>
+                    </form>
+
+                    <div class="space-y-1.5 text-xs">
+                        @forelse ($loyalty as $trx)
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-gray-500">{{ $trx->created_at->format('d/m/Y') }} &middot; {{ $trx->note ?? $trx->type }}</span>
+                                <span class="font-semibold {{ $trx->points >= 0 ? 'text-emerald-700' : 'text-rose-600' }}">
+                                    {{ $trx->points >= 0 ? '+' : '' }}{{ number_format($trx->points) }}
+                                </span>
+                            </div>
+                        @empty
+                            <p class="text-gray-400">Belum ada riwayat poin.</p>
+                        @endforelse
+                    </div>
+                </div>
                 </div>
             </div>
         </div>

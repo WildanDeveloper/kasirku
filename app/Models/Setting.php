@@ -25,6 +25,13 @@ class Setting extends Model
         'tax_percent' => '0',
         'printer_width' => '58',
         'printer_auto_print' => '0',
+        'loyalty_percent' => '0',
+        'loyalty_point_value' => '100',
+        'loyalty_max_redeem_percent' => '50',
+        'wa_url' => '',
+        'wa_token' => '',
+        'wa_admin_number' => '',
+        'low_stock_alert' => '1',
     ];
 
     public static function get(string $key): string

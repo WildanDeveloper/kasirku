@@ -43,6 +43,15 @@ class BackupDatabase extends Command
             return self::FAILURE;
         }
 
+        // Backup rusak lebih berbahaya daripada tidak ada backup sama sekali:
+        // verifikasi file hasil salinan sebelum dianggap berhasil.
+        if (! $this->isValidSqlite($target)) {
+            File::delete($target);
+            $this->error('Salinan database tidak valid, backup dibatalkan.');
+
+            return self::FAILURE;
+        }
+
         // Buang backup lama.
         $files = collect(File::files($directory))
             ->filter(fn ($f) => $f->getFilename() !== $filename)
@@ -58,5 +67,24 @@ class BackupDatabase extends Command
         $this->info('Backup dibuat: '.$target.' ('.number_format(File::size($target) / 1024, 1).' KB)');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Cek cepat bahwa file benar-benar database SQLite yang bisa dibaca:
+     * header benar dan bisa opened PDO tanpa error.
+     */
+    private function isValidSqlite(string $path): bool
+    {
+        if (! str_starts_with((string) file_get_contents($path, false, null, 0, 16), 'SQLite format 3')) {
+            return false;
+        }
+
+        try {
+            new \PDO('sqlite:'.$path)->query('SELECT count(*) FROM sqlite_master')->fetch();
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 }

@@ -6,6 +6,7 @@ use App\Models\CashShift;
 use App\Models\Customer;
 use App\Models\CustomerPrice;
 use App\Models\HeldSale;
+use App\Models\PriceTier;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -34,7 +35,29 @@ class PosController extends Controller
             ->mapWithKeys(fn ($cp) => [$cp->customer_id.':'.$cp->product_id => (int) $cp->price])
             ->all();
 
-        $customers = Customer::orderBy('name')->get();
+        $customers = Customer::with('deposits')
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'is_wholesale' => (bool) $c->is_wholesale,
+                'points' => (int) $c->points,
+                'points_value' => $c->pointValue(),
+                'deposit' => $c->depositBalance(),
+            ]);
+
+        $loyaltyPercent = (float) Setting::get('loyalty_percent');
+        $loyaltyPointValue = max(1, (int) Setting::get('loyalty_point_value'));
+
+        // Tier harga untuk produk di POS (min_qty + harga).
+        $tiers = PriceTier::whereIn('product_id', $products->pluck('id'))
+            ->get(['product_id', 'min_qty', 'price'])
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->map(fn ($r) => [
+                'min_qty' => (int) $r->min_qty,
+                'price' => (int) $r->price,
+            ])->sortByDesc('min_qty')->values());
         $taxPercent = (float) Setting::get('tax_percent');
         $vouchers = Voucher::where('is_active', true)
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>=', now()))
@@ -50,7 +73,10 @@ class PosController extends Controller
                 'note' => $h->note,
             ]);
 
-        return view('pos.index', compact('products', 'customers', 'taxPercent', 'openShift', 'heldSales', 'customPrices', 'vouchers'));
+        return view('pos.index', compact(
+            'products', 'customers', 'taxPercent', 'openShift', 'heldSales',
+            'customPrices', 'vouchers', 'tiers', 'loyaltyPercent', 'loyaltyPointValue'
+        ));
     }
 
     public function hold(Request $request)
@@ -94,6 +120,8 @@ class PosController extends Controller
             'apply_tax' => ['nullable', 'boolean'],
             'is_credit' => ['nullable', 'boolean'],
             'voucher_code' => ['nullable', 'string', 'max:50'],
+            'redeem_points' => ['nullable', 'integer', 'min:0'],
+            'use_deposit' => ['nullable', 'integer', 'min:0'],
             'paid_amount' => ['required', 'integer', 'min:0'],
             'payment_method' => ['required', 'in:cash,qris,debit'],
         ]);
@@ -108,7 +136,10 @@ class PosController extends Controller
             ? Customer::find($data['customer_id'])
             : null;
 
-        $sale = DB::transaction(function () use ($data, $request, $customer) {
+        $pointsRedeemed = 0;
+        $depositUsed = 0;
+
+        $sale = DB::transaction(function () use ($data, $request, $customer, &$pointsRedeemed, &$depositUsed) {
             $subtotal = 0;
 
             $sale = Sale::create([
@@ -132,8 +163,8 @@ class PosController extends Controller
 
                 abort_if($product->stock < $item['quantity'], 422, "Stok {$product->name} tidak cukup.");
 
-                // Harga mengikuti jenis pelanggan: harga khusus > grosir > ecer.
-                $price = $product->priceFor($customer);
+                // Harga: khusus pelanggan > tier grosir > grosir > ecer.
+                $price = $product->finalPriceFor($customer, $item['quantity']);
                 $line = $price * $item['quantity'];
                 $subtotal += $line;
 
@@ -142,6 +173,8 @@ class PosController extends Controller
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
                     'price' => $price,
+                    // HPP disimpan saat ini agar laporan tidak berubah bila harga beli produk berubah.
+                    'cost_at_sale' => (int) $product->cost_price,
                     'subtotal' => $line,
                 ]);
 
@@ -175,11 +208,44 @@ class PosController extends Controller
             // Jaring pengaman: total transaksi tidak boleh pernah negatif (BUG-07).
             abort_if($total < 0, 422, 'Total transaksi tidak valid.');
 
+            // Tukar poin (potongan harga, bukan uang).
+            $pointsRedeemed = 0;
+            $pointDiscount = 0;
+
+            if (! empty($data['redeem_points']) && $customer) {
+                $pointValue = max(1, (int) Setting::get('loyalty_point_value'));
+                $maxRedeemPercent = (float) Setting::get('loyalty_max_redeem_percent');
+                $maxPoints = (int) $customer->points;
+
+                abort_if($data['redeem_points'] > $maxPoints, 422, 'Poin tidak cukup (tersedia '.$maxPoints.').');
+
+                $maxValue = (int) floor($total * $maxRedeemPercent / 100);
+                $maxPointsByValue = (int) floor($maxValue / $pointValue);
+                $pointsRedeemed = min($data['redeem_points'], $maxPoints, $maxPointsByValue);
+
+                abort_if($pointsRedeemed < 1, 422, 'Penukaran poin di luar batas yang diperbolehkan.');
+
+                $pointDiscount = $pointsRedeemed * $pointValue;
+                $total -= $pointDiscount;
+            }
+
+            // Gunakan kasbon pelanggan sebagai pembayaran.
+            $depositUsed = 0;
+
+            if (! empty($data['use_deposit']) && $customer) {
+                $balance = $customer->depositBalance();
+                $depositUsed = min((int) $data['use_deposit'], $balance, $total);
+
+                abort_if($depositUsed < 0, 422, 'Penggunaan kasbon tidak valid.');
+            }
+
             $isCredit = ! empty($data['is_credit']) && ($data['customer_id'] ?? null) !== null;
+            $cashPaid = $data['paid_amount'];
+
             if ($isCredit) {
-                abort_if($data['paid_amount'] >= $total, 422, 'Transaksi utang: uang bayar harus kurang dari total.');
+                abort_if($cashPaid + $depositUsed >= $total, 422, 'Transaksi utang: total bayar harus kurang dari total.');
             } else {
-                abort_if($data['paid_amount'] < $total, 422, 'Uang bayar kurang dari total.');
+                abort_if($cashPaid + $depositUsed < $total, 422, 'Uang bayar + kasbon kurang dari total.');
             }
 
             $sale->update([
@@ -189,13 +255,59 @@ class PosController extends Controller
                 'voucher_discount' => $voucherDiscount,
                 'tax' => $tax,
                 'total' => $total,
-                'paid_amount' => $data['paid_amount'],
-                'change_amount' => $isCredit ? 0 : $data['paid_amount'] - $total,
+                'paid_amount' => $cashPaid + $depositUsed,
+                'change_amount' => $isCredit ? 0 : $cashPaid + $depositUsed - $total,
                 'is_credit' => $isCredit,
                 'settled_at' => $isCredit ? null : now(),
             ]);
 
             $voucher?->increment('used_count');
+
+            if ($customer) {
+                if ($depositUsed > 0) {
+                    \App\Models\CustomerDeposit::create([
+                        'customer_id' => $customer->id,
+                        'sale_id' => $sale->id,
+                        'type' => 'out',
+                        'amount' => $depositUsed,
+                        'note' => 'Dipakai saat transaksi '.$sale->invoice_number,
+                        'user_id' => $request->user()->id,
+                    ]);
+                }
+
+                if ($pointsRedeemed > 0) {
+                    \App\Models\LoyaltyTransaction::create([
+                        'customer_id' => $customer->id,
+                        'sale_id' => $sale->id,
+                        'type' => 'redeem',
+                        'points' => -$pointsRedeemed,
+                        'note' => 'Tukar poin',
+                        'user_id' => $request->user()->id,
+                    ]);
+
+                    $customer->update(['points' => $customer->points - $pointsRedeemed]);
+                }
+
+                // Poin bertambah dari nilai transaksi (tanpa potongan & pajak).
+                $loyaltyPercent = (float) Setting::get('loyalty_percent');
+
+                if ($loyaltyPercent > 0) {
+                    $earned = (int) floor(max(0, $subtotal - $discount - $voucherDiscount) * $loyaltyPercent / 100);
+
+                    if ($earned > 0) {
+                        \App\Models\LoyaltyTransaction::create([
+                            'customer_id' => $customer->id,
+                            'sale_id' => $sale->id,
+                            'type' => 'earn',
+                            'points' => $earned,
+                            'note' => 'Poin dari transaksi',
+                            'user_id' => $request->user()->id,
+                        ]);
+
+                        $customer->update(['points' => $customer->points + $earned]);
+                    }
+                }
+            }
 
             return $sale;
         });
@@ -203,6 +315,10 @@ class PosController extends Controller
         return response()->json([
             'invoice_number' => $sale->invoice_number,
             'total' => $sale->total,
+            'points_earned' => $customer ? (int) \App\Models\LoyaltyTransaction::where('sale_id', $sale->id)->where('type', 'earn')->value('points') : 0,
+            'points_redeemed' => $pointsRedeemed,
+            'deposit_used' => $depositUsed,
+            'points_balance' => $customer?->fresh()->points,
             'discount' => $sale->discount,
             'voucher_discount' => $sale->voucher_discount,
             'change_amount' => $sale->change_amount,

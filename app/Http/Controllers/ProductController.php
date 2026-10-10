@@ -39,8 +39,15 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
+        $tiers = $data['tiers'] ?? [];
+        unset($data['tiers']);
 
-        $product = Product::create($data);
+        $product = DB::transaction(function () use ($data, $tiers) {
+            $product = Product::create($data);
+            $this->syncTiers($product, $tiers);
+
+            return $product;
+        });
 
         ActivityLogger::record('product.created', 'Menambah produk '.$product->name, $product, ['harga' => $product->selling_price]);
 
@@ -62,8 +69,14 @@ class ProductController extends Controller
         $newStock = (int) $data['stock'];
         $stockChanged = $newStock !== (int) $product->stock;
 
-        unset($data['stock']);
+        $tiers = $data['tiers'] ?? null;
+        unset($data['stock'], $data['tiers']);
+
         $product->update($data);
+
+        if ($tiers !== null) {
+            $this->syncTiers($product, $tiers);
+        }
 
         // Perubahan stok lewat form tetap tercatat di riwayat (BUG-23).
         if ($stockChanged) {
@@ -366,7 +379,13 @@ class ProductController extends Controller
             'stock' => ['required', 'integer', 'min:0'],
             'min_stock' => ['required', 'integer', 'min:0'],
             'unit' => ['required', 'string', 'max:20'],
+            'tiers' => ['nullable', 'array'],
+            // Baris kosong dibuang di cleanTiers(); di sini hanya dijamin bentuknya.
+            'tiers.*.min_qty' => ['nullable', 'integer', 'min:0'],
+            'tiers.*.price' => ['nullable', 'integer', 'min:0'],
         ]);
+
+        $data['tiers'] = $this->cleanTiers($data['tiers'] ?? []);
 
         $data['barcode'] = ($data['barcode'] ?? null) ?: null;
         $data['category_id'] = $data['category_id'] ?? null;
@@ -375,5 +394,37 @@ class ProductController extends Controller
             : null;
 
         return $data;
+    }
+
+    /** Simpan ulang daftar harga grosir bertingkat (form produk). */
+    private function syncTiers(Product $product, array $tiers): void
+    {
+        $product->priceTiers()->delete();
+        $product->priceTiers()->createMany($tiers);
+    }
+
+    /**
+     * Bersihkan daftar harga grosir bertingkat: buang baris kosong, tolak
+     * jumlah duplikat, dan pastikan harga tidak melebihi harga ecer.
+     */
+    private function cleanTiers(array $tiers): array
+    {
+        $clean = [];
+        $seen = [];
+
+        foreach ($tiers as $tier) {
+            $minQty = (int) ($tier['min_qty'] ?? 0);
+
+            if ($minQty < 1 || isset($seen[$minQty])) {
+                continue;
+            }
+
+            $seen[$minQty] = true;
+            $clean[] = ['min_qty' => $minQty, 'price' => (int) $tier['price']];
+        }
+
+        usort($clean, fn ($a, $b) => $a['min_qty'] <=> $b['min_qty']);
+
+        return $clean;
     }
 }

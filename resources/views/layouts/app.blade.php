@@ -14,7 +14,7 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased text-gray-900">
+    <body class="font-sans antialiased text-gray-900 @yield('bodyClass')">
         <div class="min-h-screen bg-gray-100 flex">
             <aside class="hidden lg:flex lg:flex-col w-64 shrink-0 bg-slate-900">
                 @include('layouts.navigation')

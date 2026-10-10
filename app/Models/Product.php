@@ -45,6 +45,50 @@ class Product extends Model
         return $this->hasMany(SaleReturnItem::class);
     }
 
+    public function priceTiers(): HasMany
+    {
+        return $this->hasMany(PriceTier::class);
+    }
+
+    /**
+     * Harga grosir bertingkat: tier dengan min_qty terbesar yang <= jumlah pembelian.
+     * Kalau tidak ada tier yang cocok, pakai harga grosir / ecer.
+     */
+    public function tierPrice(int $quantity): int
+    {
+        $tier = $this->relationLoaded('priceTiers')
+            ? $this->priceTiers->where('min_qty', '<=', $quantity)->sortByDesc('min_qty')->first()
+            : $this->priceTiers()->where('min_qty', '<=', $quantity)->orderByDesc('min_qty')->first();
+
+        if ($tier) {
+            return (int) $tier->price;
+        }
+
+        return $this->wholesalePrice();
+    }
+
+    /** Harga akhir untuk pelanggan + jumlah (khusus > tier > grosir > ecer). */
+    public function finalPriceFor(?Customer $customer, int $quantity = 1): int
+    {
+        if ($customer) {
+            $custom = $this->relationLoaded('customerPrices')
+                ? $this->customerPrices->firstWhere('customer_id', $customer->id)
+                : $this->customerPrices()->where('customer_id', $customer->id)->first();
+
+            if ($custom) {
+                return (int) $custom->price;
+            }
+
+            if ($customer->is_wholesale) {
+                return $this->tierPrice($quantity);
+            }
+        }
+
+        return $this->priceTiers()->where('min_qty', '<=', $quantity)->exists()
+            ? $this->tierPrice($quantity)
+            : (int) $this->selling_price;
+    }
+
     public function isLowStock(): bool
     {
         return $this->stock <= $this->min_stock;
@@ -56,21 +100,10 @@ class Product extends Model
         return (int) ($this->price_wholesale ?? $this->selling_price);
     }
 
-    /** Harga untuk pelanggan tertentu (harga khusus > grosir > ecer). */
-    public function priceFor(?Customer $customer): int
+    /** Harga untuk pelanggan tertentu (khusus > tier grosir > grosir > ecer). */
+    public function priceFor(?Customer $customer, int $quantity = 1): int
     {
-        if (! $customer) {
-            return (int) $this->selling_price;
-        }
-
-        $custom = $this->relationLoaded('customerPrices')
-            ? $this->customerPrices->firstWhere('customer_id', $customer->id)
-            : null;
-
-        if ($custom) {
-            return (int) $custom->price;
-        }
-
-        return $customer->is_wholesale ? $this->wholesalePrice() : (int) $this->selling_price;
+        return $this->finalPriceFor($customer, $quantity);
     }
+
 }

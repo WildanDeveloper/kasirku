@@ -46,8 +46,22 @@ class CustomerController extends Controller
             ->get();
 
         $prices = $customer->prices()->with('product')->orderBy('product_id')->get();
+        $deposits = $customer->deposits()->latest()->limit(10)->get();
+        $loyalty = $customer->loyaltyTransactions()->latest()->limit(10)->get();
+        $depositBalance = $customer->depositBalance();
+        $pointValue = $customer->pointValue();
 
-        return view('customers.show', compact('customer', 'sales', 'stats', 'favorites', 'prices'));
+        return view('customers.show', compact(
+            'customer',
+            'sales',
+            'stats',
+            'favorites',
+            'prices',
+            'deposits',
+            'loyalty',
+            'depositBalance',
+            'pointValue',
+        ));
     }
 
     public function store(Request $request)

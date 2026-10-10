@@ -8,7 +8,10 @@ import {
     dropdown,
     flash,
     modal,
+    priceTiers,
     printable,
+    receiptShare,
+    purchaseForm,
     rowEditor,
     tableTools,
 } from './components/ui.js';
@@ -28,6 +31,9 @@ Alpine.data('modal', modal);
 Alpine.data('flash', flash);
 Alpine.data('bulkProducts', bulkProducts);
 Alpine.data('appVersion', appVersion);
+Alpine.data('purchaseForm', purchaseForm);
+Alpine.data('priceTiers', priceTiers);
+Alpine.data('receiptShare', receiptShare);
 
 let qrLoader = null;
 
