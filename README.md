@@ -9,7 +9,7 @@ Aplikasi kasir (POS) + manajemen stok toko, open source, dibangun dengan Laravel
 - **Manajemen stok** — stok masuk/keluar/penyesuaian dengan riwayat pergerakan lengkap, peringatan stok menipis
 - **Riwayat penjualan** — daftar transaksi + struk per transaksi
 - **Laporan** — pendapatan, estimasi laba, penjualan harian, produk terlaris, filter rentang tanggal
-- **Autentikasi** — login/register bawaan Laravel Breeze
+- **Autentikasi** — login Laravel Breeze (tanpa registrasi publik; kasir dibuat dari menu Pengguna)
 
 ## Teknologi
 
@@ -91,6 +91,12 @@ export function tableTools() {
 Ekspresi seperti `document`, `window`, `Math`, arrow function (`=>`), template
 literal, dan `if (...)` **tidak boleh** dipakai di atribut `x-*` — pindahkan ke
 method komponen.
+
+## Pengujian
+
+```bash
+php artisan test
+```
 
 ## Struktur Database
 
