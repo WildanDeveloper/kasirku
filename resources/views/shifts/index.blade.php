@@ -38,7 +38,11 @@
                                     <td class="table-td font-semibold text-gray-900">{{ $shift->user->name }}</td>
                                     <td class="table-td whitespace-nowrap text-gray-500">{{ $shift->opened_at->format('d/m H:i') }}</td>
                                     <td class="table-td whitespace-nowrap text-gray-500">
-                                        {{ $shift->closed_at?->format('d/m H:i') ?? '<span class="text-emerald-600 font-semibold">Aktif</span>' }}
+                                        @if ($shift->closed_at)
+                                            {{ $shift->closed_at->format('d/m H:i') }}
+                                        @else
+                                            <span class="text-emerald-600 font-semibold">Aktif</span>
+                                        @endif
                                     </td>
                                     <td class="table-td text-right">{{ number_format($shift->opening_balance, 0, ',', '.') }}</td>
                                     <td class="table-td text-right">{{ $shift->expected_balance !== null ? number_format($shift->expected_balance, 0, ',', '.') : '—' }}</td>
