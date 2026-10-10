@@ -115,7 +115,7 @@
                                         Edit
                                     </a>
                                     <form method="POST" action="{{ route('products.destroy', $product) }}" class="inline"
-                                          @submit="if (! confirm('Hapus produk ini?')) $event.preventDefault()">
+                                          @submit="ask($event, 'Hapus produk ini?')">
                                         @csrf
                                         @method('DELETE')
                                         <button class="inline-flex items-center gap-1 text-sm font-semibold text-red-500 hover:text-red-700 ml-3">
@@ -144,6 +144,7 @@
             <!-- Bulk action bar -->
             <form method="POST" action="{{ route('products.bulk') }}"
                   x-show="selected.length > 0" x-cloak x-transition
+                  @submit="askBulkDelete($event)"
                   class="sticky bottom-0 bg-slate-900 border-t border-slate-700 px-4 py-3">
                 @csrf
                 <template x-for="id in selected" :key="id">
@@ -182,11 +183,12 @@
                         <input type="number" name="stock_delta" min="-100000" max="100000" placeholder="+20 atau -5" required class="form-input !w-48 bg-white">
                     </template>
 
-                    <button type="submit" x-show="action !== 'delete'"
-                            class="btn-primary !bg-white !text-slate-900 hover:!bg-gray-100">Terapkan</button>
-                    <button type="submit" x-show="action === 'delete'"
-                            class="btn-danger"
-                            @submit="askBulkDelete($event)">Hapus Terpilih</button>
+                    <template x-if="action !== 'delete'">
+                        <button type="submit" class="btn-primary !bg-white !text-slate-900 hover:!bg-gray-100">Terapkan</button>
+                    </template>
+                    <template x-if="action === 'delete'">
+                        <button type="submit" class="btn-danger">Hapus Terpilih</button>
+                    </template>
 
                     <button type="submit" form="label-form"
                             class="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 text-white text-sm font-semibold rounded-lg hover:bg-white/20 transition">

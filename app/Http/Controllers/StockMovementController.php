@@ -17,7 +17,17 @@ class StockMovementController extends Controller
 
         $lowStock = Product::whereColumn('stock', '<=', 'min_stock')->orderBy('stock')->get();
 
-        return view('stocks.index', compact('movements', 'lowStock'));
+        // Hanya produk yang cocok pencarian (maksimal 50), bukan seluruh katalog (BUG-45).
+        $search = trim((string) $request->query('product_search', ''));
+
+        $products = Product::when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+            ->where('name', 'like', "%{$search}%")
+            ->orWhere('barcode', 'like', "%{$search}%")))
+            ->orderBy('name')
+            ->limit(50)
+            ->get();
+
+        return view('stocks.index', compact('movements', 'lowStock', 'products', 'search'));
     }
 
     public function store(Request $request)
@@ -33,7 +43,7 @@ class StockMovementController extends Controller
             Product::findOrFail($data['product_id']),
             $data['type'],
             (int) $data['quantity'],
-            $data['note'],
+            ($data['note'] ?? null),
             $request->user()->id,
         );
 

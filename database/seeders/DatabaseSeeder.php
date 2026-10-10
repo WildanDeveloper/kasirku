@@ -18,9 +18,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
+        $admin = User::factory()->create([
             'name' => 'Admin Toko',
             'email' => 'admin@kasirku.test',
+            'is_admin' => true,
+            'is_active' => true,
+        ]);
+
+        User::factory()->create([
+            'name' => 'Kasir',
+            'email' => 'kasir@kasirku.test',
+            'is_admin' => false,
+            'is_active' => true,
         ]);
 
         $categories = collect(['Makanan', 'Minuman', 'Sembako', 'Kebersihan'])
@@ -43,7 +52,7 @@ class DatabaseSeeder extends Seeder
                 'min_stock' => 5,
             ]);
 
-            StockMovement::record($product, 'in', $product->stock, 'Stok awal', 1);
+            StockMovement::record($product, 'in', $product->stock, 'Stok awal', $admin->id);
         }
     }
 }

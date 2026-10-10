@@ -54,7 +54,18 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        $product->update($this->validated($request, $product));
+        $data = $this->validated($request, $product);
+
+        $newStock = (int) $data['stock'];
+        $stockChanged = $newStock !== (int) $product->stock;
+
+        unset($data['stock']);
+        $product->update($data);
+
+        // Perubahan stok lewat form tetap tercatat di riwayat (BUG-23).
+        if ($stockChanged) {
+            StockMovement::record($product, 'adjustment', $newStock, 'Koreksi stok via form produk', $request->user()->id);
+        }
 
         return redirect()->route('products.index')->with('success', 'Produk diperbarui.');
     }
@@ -107,6 +118,26 @@ class ProductController extends Controller
         $mode = $data['mode'] ?? 'retail';
 
         return view('products.labels', compact('products', 'shop', 'mode'));
+    }
+
+    /** Apakah kolom produk ini punya isi di baris CSV (base = indeks data). */
+    private function importHasColumn(array $cells, string $key, int $base): bool
+    {
+        $index = match ($key) {
+            'cost_price' => $base,
+            'selling_price' => $base + 1,
+            'stock' => $base + 2,
+            'unit' => $base + 3,
+            'min_stock' => $base + 4,
+            'category_id' => $base - 1,
+            default => null,
+        };
+
+        if ($index === null) {
+            return false;
+        }
+
+        return array_key_exists($index, $cells) && trim((string) $cells[$index]) !== '';
     }
 
     public function importForm()
@@ -172,15 +203,32 @@ class ProductController extends Controller
                     'min_stock' => ($cells[$base + 4] ?? '') !== '' ? $digits($cells[$base + 4]) : 5,
                 ];
 
-                $existing = null;
-                if ($barcode !== null) {
-                    $existing = Product::where('barcode', $barcode)->first();
-                } elseif (Product::where('name', $name)->exists()) {
-                    $existing = Product::where('name', $name)->first();
+                // Cari kandidatexisting: barcode dulu, lalu nama (BUG-14).
+                $existing = $barcode !== null
+                    ? Product::where('barcode', $barcode)->first()
+                    : null;
+
+                if (! $existing) {
+                    $existing = Product::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
                 }
 
                 if ($existing) {
-                    $existing->update(collect($row)->except('barcode')->all());
+                    // Hanya kolom yang memang ada di baris CSV yang ditulis (BUG-15).
+                    $changes = collect($row)
+                        ->except(['barcode', 'category_id'])
+                        ->filter(fn ($v, $key) => $this->importHasColumn($cells, $key, $base))
+                        ->all();
+
+                    if ($barcode !== null && $barcode !== '') {
+                        $changes['barcode'] = $barcode;
+                    }
+
+                    // Kategori hanya ditulis bila baris CSV benar-benar menyebut kategori.
+                    if ($category !== null) {
+                        $changes['category_id'] = $category->id;
+                    }
+
+                    $existing->update($changes);
 
                     $stockCell = $cells[$base + 2] ?? '';
                     if ($stockCell !== '' && $digits($stockCell) !== $existing->stock) {
@@ -216,10 +264,10 @@ class ProductController extends Controller
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:products,id'],
             'action' => ['required', 'in:category,price_percent,price_set,restock,delete'],
-            'category_id' => ['nullable', 'exists:categories,id'],
-            'percent' => ['nullable', 'integer', 'min:-99', 'max:1000'],
-            'price' => ['nullable', 'integer', 'min:0'],
-            'stock_delta' => ['nullable', 'integer', 'min:-100000', 'max:100000'],
+            'category_id' => ['required_if:action,category', 'nullable', 'exists:categories,id'],
+            'percent' => ['required_if:action,price_percent', 'nullable', 'integer', 'min:-99', 'max:1000'],
+            'price' => ['required_if:action,price_set', 'nullable', 'integer', 'min:0'],
+            'stock_delta' => ['required_if:action,restock', 'nullable', 'integer', 'min:-100000', 'max:100000'],
         ]);
 
         $products = Product::whereKey($data['ids'])->get();
@@ -279,6 +327,11 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        if ($product->saleItems()->exists()) {
+            return redirect()->route('products.index')
+                ->with('warning', 'Produk sudah pernah terjual sehingga tidak bisa dihapus agar riwayat penjualan tetap utuh.');
+        }
+
         $product->delete();
 
         return redirect()->route('products.index')->with('success', 'Produk dihapus.');
@@ -298,7 +351,7 @@ class ProductController extends Controller
             'unit' => ['required', 'string', 'max:20'],
         ]);
 
-        $data['barcode'] = $data['barcode'] ?: null;
+        $data['barcode'] = ($data['barcode'] ?? null) ?: null;
         $data['category_id'] = $data['category_id'] ?? null;
         $data['price_wholesale'] = ($data['price_wholesale'] ?? null) !== null && $data['price_wholesale'] !== ''
             ? (int) $data['price_wholesale']

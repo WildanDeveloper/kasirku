@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\CustomerPrice;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
     public function index(Request $request)
     {
         $customers = Customer::withCount('sales')
+            ->withSum(['sales as outstanding_sum' => fn ($q) => $q->where('is_credit', true)->whereNull('settled_at')], DB::raw('total - paid_amount'))
             ->when($request->search, fn ($q, $s) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%{$s}%")
                 ->orWhere('phone', 'like', "%{$s}%")))
@@ -30,7 +32,6 @@ class CustomerController extends Controller
             'total_spent' => (int) $customer->sales()->sum('total'),
             'outstanding' => $customer->outstanding(),
             'avg' => (int) ($customer->sales()->avg('total') ?? 0),
-            'last_purchase' => $customer->sales()->max('created_at'),
         ];
 
         $favorites = \App\Models\SaleItem::query()

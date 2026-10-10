@@ -39,7 +39,7 @@
                                 <div class="text-xs text-gray-500 truncate">{{ Auth::user()->email }}</div>
                             </div>
                             <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profil</a>
-                            <form method="POST" action="{{ route('logout') }}" @submit.prevent="open = false; $el.submit()">
+                            <form method="POST" action="{{ route('logout') }}" @submit.prevent="doLogout()">
                                 @csrf
                                 <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Keluar</button>
                             </form>
@@ -79,8 +79,5 @@
             </div>
         </div>
 
-        @style
-            [x-cloak] { display: none !important; }
-        @endstyle
     </body>
 </html>

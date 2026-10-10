@@ -101,6 +101,16 @@ method komponen.
 | `stock_movements` | Riwayat stok masuk/keluar/penyesuaian |
 | `sales` | Transaksi penjualan (invoice, total, bayar, kembalian) |
 | `sale_items` | Item per transaksi |
+| `sale_sequences` | Penomoran invoice harian (anti-race) |
+| `sale_payments` | Cicilan pembayaran utang (+ metode pembayaran) |
+| `held_sales` | Transaksi yang ditahan kasir |
+| `cash_shifts` | Shift kasir & selisih rekonsiliasi |
+| `customers` | Pelanggan (flag grosir, sisa utang) |
+| `customer_prices` | Harga khusus per pelanggan |
+| `vouchers` | Kode promo (persen/nominal, kuota, masa berlaku) |
+| `expenses` | Pengeluaran toko |
+| `settings` | Identitas toko, pajak, footer struk |
+| `sale_returns` / `sale_return_items` | Retur penjualan |
 
 ## Kontribusi
 

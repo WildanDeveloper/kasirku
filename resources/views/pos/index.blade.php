@@ -74,7 +74,7 @@
                             <div class="mt-1 text-xs text-gray-500" x-text="'Stok: ' + product.stock + ' ' + product.unit"></div>
                         </button>
                     </template>
-                    <div x-show="filtered.length === 0" class="col-span-full py-10 text-center">
+                    <div x-show="filtered.length === 0" x-cloak class="col-span-full py-10 text-center">
                         <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                         </svg>
@@ -88,9 +88,9 @@
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="section-title">Keranjang</h3>
                     <div class="flex items-center gap-3">
-                        <button type="button" x-show="cart.length > 0" @click="holdOrder()"
+                        <button type="button" x-show="cart.length > 0" x-cloak @click="holdOrder()"
                                 class="text-xs font-semibold text-amber-600 hover:text-amber-700">Tahan</button>
-                        <button type="button" x-show="cart.length > 0" @click="clearCart()"
+                        <button type="button" x-show="cart.length > 0" x-cloak @click="clearCart()"
                                 class="text-xs font-semibold text-red-500 hover:text-red-700">Kosongkan</button>
                     </div>
                 </div>
@@ -131,7 +131,7 @@
                             </button>
                         </div>
                     </template>
-                    <div x-show="cart.length === 0" class="py-8 text-center">
+                    <div x-show="cart.length === 0" x-cloak class="py-8 text-center">
                         <svg class="mx-auto h-10 w-10 text-gray-200" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
                         </svg>
@@ -157,11 +157,11 @@
                     </div>
                     <p x-show="voucherMessage" class="text-xs" :class="voucherError ? 'text-red-600' : 'text-emerald-600'" x-text="voucherMessage"></p>
 
-                    <div class="flex justify-between text-sm" x-show="discount > 0">
+                    <div class="flex justify-between text-sm" x-show="discount > 0" x-cloak>
                         <span class="text-gray-500">Diskon</span>
                         <span class="font-semibold text-amber-600">- <span x-text="format(discount)"></span></span>
                     </div>
-                    <div class="flex justify-between text-sm" x-show="voucherDiscount > 0">
+                    <div class="flex justify-between text-sm" x-show="voucherDiscount > 0" x-cloak>
                         <span class="text-gray-500">Voucher <span x-text="voucherName"></span></span>
                         <span class="font-semibold text-emerald-600">- <span x-text="format(voucherDiscount)"></span></span>
                     </div>
@@ -177,7 +177,7 @@
                         </select>
                     </div>
 
-                    <label x-show="taxPercent > 0" class="flex items-center gap-2 text-sm text-gray-600">
+                    <label x-show="taxPercent > 0" x-cloak class="flex items-center gap-2 text-sm text-gray-600">
                         <input type="checkbox" x-model="applyTax" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                         Pajak <span class="font-semibold" x-text="taxPercent + '%'"></span>
                         <span class="ml-auto text-gray-500" x-text="'+' + format(taxAmount)"></span>
@@ -205,9 +205,9 @@
                         <input type="checkbox" x-model="isCredit" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                         <span class="flex-1">Utang (piutang pelanggan)</span>
                     </label>
-                    <p x-show="isCredit && !customerId" class="text-xs text-red-600">Pilih pelanggan dulu untuk transaksi utang.</p>
+                    <p x-show="isCredit && !customerId" x-cloak class="text-xs text-red-600">Pilih pelanggan dulu untuk transaksi utang.</p>
 
-                    <div x-show="paymentMethod === 'cash' && !isCredit" class="space-y-2">
+                    <div x-show="paymentMethod === 'cash' && !isCredit" x-cloak class="space-y-2">
                         <div class="grid grid-cols-4 gap-1.5">
                             <template x-for="amount in [total, 20000, 50000, 100000]" :key="amount">
                                 <button type="button" @click="paidAmount = amount"
@@ -218,12 +218,12 @@
                         </div>
                         <input type="number" min="0" x-model.number="paidAmount" :placeholder="isCredit ? 'Uang muka (DP)' : 'Uang diterima'"
                                class="form-input">
-                        <div class="flex justify-between text-sm" x-show="!isCredit">
+                        <div class="flex justify-between text-sm" x-show="!isCredit" x-cloak>
                             <span class="text-gray-500">Kembalian</span>
                             <span class="font-bold" :class="paidAmount >= total ? 'text-emerald-600' : 'text-gray-400'"
                                   x-text="changeText()"></span>
                         </div>
-                        <div class="flex justify-between text-sm" x-show="isCredit">
+                        <div class="flex justify-between text-sm" x-show="isCredit" x-cloak>
                             <span class="text-gray-500">Sisa utang</span>
                             <span class="font-bold text-amber-600" x-text="remainingText()"></span>
                         </div>
@@ -242,7 +242,7 @@
                         </span>
                     </button>
 
-                    <div x-show="message" x-transition class="rounded-lg p-3 text-sm font-medium"
+                    <div x-show="message" x-cloak x-transition class="rounded-lg p-3 text-sm font-medium"
                          :class="success ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'">
                         <p x-text="message"></p>
                         <a x-show="receiptUrl" :href="receiptUrl" class="mt-1 inline-flex items-center gap-1 font-bold underline">
@@ -255,8 +255,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
     <!-- Modal scan barcode -->
     <div x-show="scannerOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4"
          @keydown.escape.window="stopScanner()">
@@ -271,5 +269,7 @@
             </div>
         </div>
     </div>
+    </div>
+
 
 </x-app-layout>

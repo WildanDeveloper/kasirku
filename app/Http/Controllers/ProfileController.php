@@ -48,6 +48,13 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        // Minimal harus ada satu admin yang bisa mengelola toko (BUG-33).
+        if ($user->isAdmin() && User::where('is_admin', true)->count() <= 1) {
+            return back()->withErrors([
+                'password' => __('Minimal harus ada satu admin yang aktif.'),
+            ], 'userDeletion');
+        }
+
         Auth::logout();
 
         $user->delete();

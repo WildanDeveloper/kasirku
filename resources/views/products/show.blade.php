@@ -31,8 +31,10 @@
                 icon="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
             <x-stat-card label="Omzet Produk" :value="'Rp '.number_format($revenue, 0, ',', '.')" tone="gray"
                 icon="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            <x-stat-card label="Potensi Laba" :value="'Rp '.number_format($potentialProfit, 0, ',', '.')" tone="emerald"
-                icon="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+            @if (auth()->user()->is_admin)
+                <x-stat-card label="Potensi Laba" :value="'Rp '.number_format($potentialProfit, 0, ',', '.')" tone="emerald"
+                    icon="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
+            @endif
         </div>
 
         @if ($returned > 0)
@@ -45,7 +47,9 @@
             <div class="page-card p-5">
                 <h3 class="section-title mb-3">Informasi Harga</h3>
                 <div class="space-y-2 text-sm">
-                    <div class="flex justify-between"><span class="text-gray-500">Harga Modal</span><span class="font-semibold">Rp {{ number_format($product->cost_price, 0, ',', '.') }}</span></div>
+                    @if (auth()->user()->is_admin)
+                        <div class="flex justify-between"><span class="text-gray-500">Harga Modal</span><span class="font-semibold">Rp {{ number_format($product->cost_price, 0, ',', '.') }}</span></div>
+                    @endif
                     <div class="flex justify-between"><span class="text-gray-500">Harga Ecer</span><span class="font-semibold text-emerald-700">Rp {{ number_format($product->selling_price, 0, ',', '.') }}</span></div>
                     <div class="flex justify-between">
                         <span class="text-gray-500">Harga Grosir</span>
@@ -130,7 +134,7 @@
                                 <td class="table-td">
                                     <span class="text-xs font-semibold uppercase {{ $movement->type === 'out' ? 'text-red-600' : ($movement->type === 'adjustment' ? 'text-amber-600' : 'text-emerald-600') }}">{{ $movement->type }}</span>
                                 </td>
-                                <td class="table-td text-right font-semibold">{{ $movement->type === 'out' ? '-' : '+' }}{{ $movement->quantity }}</td>
+                                <td class="table-td text-right font-semibold">{{ $movement->type === 'out' ? '-' : ($movement->type === 'adjustment' ? '=' : '+') }}{{ $movement->quantity }}</td>
                                 <td class="table-td text-right">{{ $movement->stock_after }}</td>
                                 <td class="table-td text-gray-600">{{ $movement->note }}</td>
                                 <td class="table-td text-gray-600">{{ $movement->user?->name ?? '-' }}</td>

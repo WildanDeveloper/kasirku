@@ -19,6 +19,8 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- Kunci tetap khusus test; .env tidak ikut ter-commit -->
+        <env name="APP_KEY" value="base64:/cC1UFjNOEjj+xy5iSo01V39Sj7wsAfb9ygBvegU4yE="/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

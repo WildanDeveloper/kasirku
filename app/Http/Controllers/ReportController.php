@@ -52,10 +52,10 @@ class ReportController extends Controller
             'returns' => $returnsTotal,
             'net' => $revenue,
             'cogs' => $cogs,
-            'gross_profit' => $revenue - $cogs,
+            'gross_profit' => (int) round($revenue - $cogs),
             'expenses' => Expense::whereBetween('spent_at', [$start, $end])->sum('amount'),
         ];
-        $summary['net_profit'] = $summary['gross_profit'] - $summary['expenses'];
+        $summary['net_profit'] = (int) round($summary['gross_profit'] - $summary['expenses']);
 
         $daily = (clone $sales)
             ->selectRaw("DATE(created_at) as day, COUNT(*) as transactions, SUM(subtotal) as gross, SUM(discount) as discount, SUM(total) as revenue")
@@ -66,7 +66,7 @@ class ReportController extends Controller
                 $dayStart = Carbon::parse($day->day)->startOfDay();
                 $dayEnd = Carbon::parse($day->day)->endOfDay();
 
-                $day->cogs = (float) (SaleItem::query()
+                $day->cogs = (int) (SaleItem::query()
                     ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
                     ->join('products', 'products.id', '=', 'sale_items.product_id')
                     ->whereBetween('sales.created_at', [$dayStart, $dayEnd])
@@ -84,7 +84,7 @@ class ReportController extends Controller
 
                 $day->cogs -= $day->returnedCogs;
                 $day->revenue -= $day->returns;
-                $day->profit = $day->revenue - $day->cogs - $day->expense;
+                $day->profit = (int) round($day->revenue - $day->cogs - $day->expense);
 
                 return $day;
             });
@@ -119,7 +119,7 @@ class ReportController extends Controller
                     $dayStart = Carbon::parse($day->day)->startOfDay();
                     $dayEnd = Carbon::parse($day->day)->endOfDay();
 
-                    $cogs = (float) (SaleItem::query()
+                    $cogs = (int) (SaleItem::query()
                         ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
                         ->join('products', 'products.id', '=', 'sale_items.product_id')
                         ->whereBetween('sales.created_at', [$dayStart, $dayEnd])
@@ -147,7 +147,7 @@ class ReportController extends Controller
                         $revenue,
                         $cogs,
                         $expense,
-                        $revenue - $cogs - $expense,
+                        (int) round($revenue - $cogs - $expense),
                     ]);
                 });
 

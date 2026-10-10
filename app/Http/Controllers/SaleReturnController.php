@@ -15,6 +15,8 @@ class SaleReturnController extends Controller
 {
     public function create(Sale $sale)
     {
+        $this->authorizeTransaction($request = request(), $sale);
+
         $sale->load(['items.product', 'returns']);
         abort_if($sale->returnableItems()->isEmpty(), 422, 'Semua barang pada transaksi ini sudah diretur.');
 
@@ -23,10 +25,12 @@ class SaleReturnController extends Controller
 
     public function store(Request $request, Sale $sale)
     {
+        $this->authorizeTransaction($request, $sale);
+
         $data = $request->validate([
             'items' => ['required', 'array', 'min:1'],
             'items.*.sale_item_id' => ['required', 'integer', 'exists:sale_items,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:0'],
+            'items.*.quantity' => ['nullable', 'integer', 'min:0'],
             'refund_method' => ['required', 'in:cash,restock'],
             'reason' => ['nullable', 'string', 'max:100'],
             'note' => ['nullable', 'string', 'max:255'],
@@ -113,16 +117,30 @@ class SaleReturnController extends Controller
                 }
             }
 
+            // Catatan kas keluar untuk retur tunai ditangani CashShift::expectedCash()
+            // supaya tidakdobel hitung dengan pengurangan pendapatan di laporan (BUG-21).
             return [$return, $total];
         });
 
         [$return, $total] = $result;
 
-        $message = 'Retur tersimpan. Nilai retur: Rp '.number_format($total, 0, ',', '.').'.';
+        $message = $return->refund_method === 'cash' && $return->debt_reduction === 0
+            ? 'Retur tersimpan & uang Rp '.number_format($total, 0, ',', '.').' dikeluarkan.'
+            : 'Retur tersimpan. Nilai retur: Rp '.number_format($total, 0, ',', '.').'.';
         if ($return->debt_reduction > 0) {
             $message = 'Retur tersimpan & mengurangi utang Rp '.number_format($return->debt_reduction, 0, ',', '.').'.';
         }
 
         return redirect()->route('sales.show', $sale)->with('success', $message);
+    }
+
+    /** Kasir hanya boleh retur transaksinya sendiri; admin bebas. */
+    private function authorizeTransaction(Request $request, Sale $sale): void
+    {
+        abort_unless(
+            $sale->user_id === $request->user()->id || $request->user()->is_admin,
+            403,
+            'Transaksi ini milik kasir lain.'
+        );
     }
 }

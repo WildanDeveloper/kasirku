@@ -19,7 +19,6 @@
     data-modal-name="{{ $name }}"
     data-modal-open="{{ $show ? 1 : 0 }}"
     data-modal-focusable="{{ $attributes->has('focusable') ? 1 : 0 }}"
-    x-init="syncName"
     x-on:open-modal.window="handleOpen($event.detail)"
     x-on:close-modal.window="handleClose($event.detail)"
     x-on:close.stop="show = false"

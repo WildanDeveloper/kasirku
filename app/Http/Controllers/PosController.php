@@ -24,13 +24,14 @@ class PosController extends Controller
                 ->where('name', 'like', "%{$s}%")
                 ->orWhere('barcode', 'like', "%{$s}%")))
             ->orderBy('name')
-            ->limit(50)
+            ->limit(300)
             ->get();
 
         // Map harga khusus: "customerId:productId" => harga.
+        // Dibentuk di PHP agar operatornya sama di SQLite/MySQL/PostgreSQL (BUG-28).
         $customPrices = CustomerPrice::whereIn('product_id', $products->pluck('id'))
-            ->pluck('price', DB::raw("customer_id || ':' || product_id"))
-            ->map(fn ($v) => (int) $v)
+            ->get(['customer_id', 'product_id', 'price'])
+            ->mapWithKeys(fn ($cp) => [$cp->customer_id.':'.$cp->product_id => (int) $cp->price])
             ->all();
 
         $customers = Customer::orderBy('name')->get();
@@ -170,6 +171,9 @@ class PosController extends Controller
             }
 
             $total = $subtotal - $discount - $voucherDiscount + $tax;
+
+            // Jaring pengaman: total transaksi tidak boleh pernah negatif (BUG-07).
+            abort_if($total < 0, 422, 'Total transaksi tidak valid.');
 
             $isCredit = ! empty($data['is_credit']) && ($data['customer_id'] ?? null) !== null;
             if ($isCredit) {

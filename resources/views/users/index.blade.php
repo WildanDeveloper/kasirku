@@ -40,7 +40,7 @@
                                 <td class="table-td">
                                     <div class="flex items-center gap-2">
                                         <span class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
-                                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                                            {{ mb_strtoupper(mb_substr($user->name, 0, 1)) }}
                                         </span>
                                         <span class="font-medium text-gray-800">
                                             {{ $user->name }}
@@ -66,7 +66,7 @@
                                     <button type="button" @click="toggleEdit('user-edit-{{ $loop->index }}')"
                                             class="text-xs font-semibold text-emerald-600 hover:underline">Edit</button>
                                     <form method="POST" action="{{ route('users.destroy', $user) }}" class="inline"
-                                          @submit="ask($event, 'Hapus user {{ $user->name }}?')">
+                                          @submit="ask($event, 'Hapus user ' + @js($user->name) + '?')">
                                         @csrf @method('DELETE')
                                         <button class="text-xs font-semibold text-red-500 hover:text-red-700">Hapus</button>
                                     </form>

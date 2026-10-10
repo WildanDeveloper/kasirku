@@ -27,7 +27,7 @@ class Setting extends Model
 
     public static function get(string $key): string
     {
-        return Cache::rememberForever("setting:{$key}", function () use ($key) {
+        return Cache::remember("setting:{$key}", now()->addHour(), function () use ($key) {
             return static::find($key)?->value ?? static::DEFAULTS[$key] ?? '';
         });
     }

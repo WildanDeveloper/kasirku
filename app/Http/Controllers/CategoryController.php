@@ -18,6 +18,12 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
+        abort_if(
+            $category->products()->exists(),
+            422,
+            'Kategori masih dipakai produk. Pindahkan produknya dulu sebelum menghapus kategori.'
+        );
+
         $category->delete();
 
         return back()->with('success', 'Kategori dihapus.');

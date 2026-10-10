@@ -79,10 +79,9 @@
                     </div>
                     <form method="POST" action="{{ route('shifts.close', $openShift) }}" class="space-y-3" x-data>
                         @csrf
-                        <input type="hidden" name="expected_balance" value="{{ $openShift->expectedCash() }}">
                         <div>
                             <x-input-label for="closing_balance" value="Kas dihitung fisik (Rp)" />
-                            <x-text-input id="closing_balance" name="closing_balance" type="number" min="0" required class="mt-1.5 form-input" x-ref="closing" />
+                            <x-text-input id="closing_balance" name="closing_balance" type="number" min="0" required class="mt-1.5 form-input" />
                         </div>
                         <input type="text" name="note" placeholder="Catatan (opsional)" class="form-input">
                         <button class="w-full btn-danger">Tutup Shift</button>

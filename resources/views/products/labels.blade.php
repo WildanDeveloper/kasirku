@@ -13,7 +13,7 @@
                 <h1 class="text-xl font-bold text-gray-900">Label Harga ({{ $products->count() }} produk)</h1>
                 <p class="text-sm text-gray-500">{{ $mode === 'wholesale' ? 'Harga Grosir' : 'Harga Ecer' }} · {{ $shop['name'] }}</p>
             </div>
-            <button @click="printPage()" class="btn-primary">Cetak</button>
+            <button type="button" @click="printPage()" class="btn-primary">Cetak</button>
         </div>
 
         <div id="label-sheet" class="label-sheet">

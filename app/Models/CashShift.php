@@ -41,27 +41,38 @@ class CashShift extends Model
     {
         $range = [$this->opened_at, $this->closed_at ?? now()];
 
-        // Penjualan tunai biasa: kas masuk bersih = total (diterima dikurangi kembalian).
-        $cashIn = Sale::where('payment_method', 'cash')
+        // Hanya transaksi milik kasir pemilik shift (BUG-19).
+        $cashIn = (int) Sale::where('user_id', $this->user_id)
+            ->where('payment_method', 'cash')
             ->where('is_credit', false)
             ->whereBetween('created_at', $range)
             ->sum('total');
 
-        // Uang muka transaksi utang tunai: paid_amount dikurangi cicilan yang sudah masuk
-        // lewat menu pembayaran (agar tidak dihitung dua kali).
-        $creditDownPayments = (float) (Sale::where('is_credit', true)
+        // Uang muka utang tunai: paid_amount dikurangi cicilan yang sudah tercatat
+        // (agar tidak dihitung dua kali).
+        $downPayments = (int) (Sale::where('user_id', $this->user_id)
+            ->where('is_credit', true)
             ->where('payment_method', 'cash')
             ->whereBetween('created_at', $range)
             ->selectRaw('SUM(paid_amount - COALESCE((SELECT SUM(amount) FROM sale_payments sp WHERE sp.sale_id = sales.id), 0)) as dp')
             ->value('dp') ?? 0);
 
-        // Cicilan utang yang diterima tunai selama shift.
-        $creditPayments = SalePayment::query()
-            ->join('sales', 'sales.id', '=', 'sale_payments.sale_id')
-            ->where('sales.payment_method', 'cash')
-            ->whereBetween('sale_payments.created_at', $range)
-            ->sum('sale_payments.amount');
+        // Cicilan utang: hanya yang benar-benar diterima tunai (BUG-18).
+        $creditPayments = (int) SalePayment::query()
+            ->where('user_id', $this->user_id)
+            ->where('payment_method', 'cash')
+            ->whereBetween('created_at', $range)
+            ->sum('amount');
 
-        return (int) $this->opening_balance + (int) $cashIn + (int) $creditDownPayments + (int) $creditPayments;
+        // Retur tunai pada penjualan non-kredit mengeluarkan uang dari laci (BUG-21).
+        // Uang retur keluar dari laci kasir yang melakukan transaksi awal,
+        // bukan dari laci kasir yang memproses returnya.
+        $cashRefunds = (int) SaleReturn::query()
+            ->where('refund_method', 'cash')
+            ->whereBetween('created_at', $range)
+            ->whereHas('sale', fn ($q) => $q->where('user_id', $this->user_id)->where('is_credit', false))
+            ->sum('total');
+
+        return (int) $this->opening_balance + $cashIn + $downPayments + $creditPayments - $cashRefunds;
     }
 }

@@ -18,9 +18,8 @@ export function confirmSubmit() {
 /** Gabungan beberapa helper untuk halaman tabel. */
 export function tableTools() {
     return {
-        ...rowEditor(),
-        ...confirmSubmit(),
-        ...copyable(),
+        copied: '',
+
         toggleEdit(id) {
             const row = document.getElementById(id);
             if (row) row.classList.toggle('hidden');
@@ -82,6 +81,12 @@ export function rowEditor() {
 export function dropdown() {
     return {
         open: false,
+
+        /** Logout dari dropdown: kirim form tanpa handler inline (CSP). */
+        doLogout() {
+            this.open = false;
+            this.$root.closest('form').submit();
+        },
     };
 }
 

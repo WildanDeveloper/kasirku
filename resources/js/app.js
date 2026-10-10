@@ -25,6 +25,7 @@ Alpine.data('tableTools', tableTools);
 Alpine.data('dropdown', dropdown);
 Alpine.data('modal', modal);
 Alpine.data('flash', flash);
+Alpine.data('bulkProducts', bulkProducts);
 
 let qrLoader = null;
 

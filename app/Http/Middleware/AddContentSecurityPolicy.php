@@ -29,9 +29,10 @@ class AddContentSecurityPolicy
                 "default-src 'self'",
                 // Alpine CSP build: tanpa eval, script inline wajib punya nonce.
                 "script-src 'self' 'nonce-{$nonce}'",
-                "style-src 'self'",
+                // Font Figtree dimuat dari bunny.net (BUG-38).
+                "style-src 'self' https://fonts.bunny.net",
                 "img-src 'self' data: blob:",
-                "font-src 'self' data:",
+                "font-src 'self' data: https://fonts.bunny.net",
                 "connect-src 'self'",
                 "worker-src 'self' blob:",
                 "child-src 'self' blob:",

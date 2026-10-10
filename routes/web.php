@@ -24,19 +24,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Semua user (kasir + admin)
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
-    Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
-    Route::post('/pos/hold', [PosController::class, 'hold'])->name('pos.hold');
+    Route::post('/pos/checkout', [PosController::class, 'checkout'])
+        ->middleware('throttle:60,1')
+        ->name('pos.checkout');
+    Route::post('/pos/hold', [PosController::class, 'hold'])
+        ->middleware('throttle:60,1')
+        ->name('pos.hold');
     Route::delete('/pos/hold/{heldSale}', [PosController::class, 'destroyHold'])->name('pos.hold.destroy');
 
     Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
     Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
-    Route::post('/sales/{sale}/pay', [SaleController::class, 'pay'])->name('sales.pay');
+    Route::post('/sales/{sale}/pay', [SaleController::class, 'pay'])
+        ->middleware('throttle:30,1')
+        ->name('sales.pay');
     Route::get('/sales/{sale}/return', [SaleReturnController::class, 'create'])->name('sales.return.create');
-    Route::post('/sales/{sale}/return', [SaleReturnController::class, 'store'])->name('sales.return.store');
+    Route::post('/sales/{sale}/return', [SaleReturnController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('sales.return.store');
 
     Route::get('/shifts', [CashShiftController::class, 'index'])->name('shifts.index');
     Route::post('/shifts', [CashShiftController::class, 'open'])->name('shifts.open');
     Route::post('/shifts/{shift}/close', [CashShiftController::class, 'close'])->name('shifts.close');
+
+    // Cek kode voucher dipakai kasir di halaman POS (BUG-16).
+    Route::get('/vouchers/{code}/check', [VoucherController::class, 'check'])->name('vouchers.check');
 
     // Kartu produk (read-only, semua user)
     Route::get('/products/{product}', [ProductController::class, 'show'])
@@ -72,7 +83,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
         Route::put('/vouchers/{voucher}', [VoucherController::class, 'update'])->name('vouchers.update');
         Route::delete('/vouchers/{voucher}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
-        Route::get('/vouchers/{code}/check', [VoucherController::class, 'check'])->name('vouchers.check');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');

@@ -11,7 +11,7 @@
             <div class="mb-4 rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">{{ session('success') }}</div>
         @endif
 
-        @if ($outstanding > 0)
+        @if ($outstanding > 0 && auth()->user()->is_admin)
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
                 <div>
                     <span class="text-xs font-bold uppercase tracking-wide text-amber-700">Total Piutang Belum Lunas</span>

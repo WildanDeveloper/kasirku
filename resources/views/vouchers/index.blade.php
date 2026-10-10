@@ -38,7 +38,7 @@
                                 <tr class="hover:bg-gray-50 align-top">
                                     <td class="table-td">
                                         <span class="font-mono font-bold text-gray-900">{{ $voucher->code }}</span>
-                                        <button type="button" @click="copy('{{ $voucher->code }}')"
+                                        <button type="button" @click="copy(@js($voucher->code))"
                                                 class="block text-[10px] text-emerald-600 hover:underline">salin</button>
                                     </td>
                                     <td class="table-td text-gray-600">{{ $voucher->name }}</td>
@@ -61,7 +61,7 @@
                                         <button type="button" @click="toggleEdit('voucher-edit-{{ $loop->index }}')"
                                                 class="text-xs font-semibold text-emerald-600 hover:underline">Edit</button>
                                         <form method="POST" action="{{ route('vouchers.destroy', $voucher) }}" class="inline"
-                                              @submit="ask($event, 'Hapus voucher {{ $voucher->code }}?')">
+                                              @submit="ask($event, 'Hapus voucher ' + @js($voucher->code) + '?')">
                                             @csrf @method('DELETE')
                                             <button class="text-xs font-semibold text-red-500 hover:text-red-700">Hapus</button>
                                         </form>
@@ -86,6 +86,7 @@
                                             <div><x-input-label value="Mulai" /><input type="date" name="starts_at" value="{{ $voucher->starts_at?->format('Y-m-d') }}" class="form-input mt-1"></div>
                                             <div><x-input-label value="Berakhir" /><input type="date" name="expires_at" value="{{ $voucher->expires_at?->format('Y-m-d') }}" class="form-input mt-1"></div>
                                             <div class="flex items-center gap-3">
+                                                <input type="hidden" name="is_active" value="0">
                                                 <label class="flex items-center gap-2 text-sm">
                                                     <input type="checkbox" name="is_active" value="1" @checked($voucher->is_active) class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                                                     Aktif

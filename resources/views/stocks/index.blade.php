@@ -65,11 +65,19 @@
         <div class="space-y-6">
             <div class="page-card p-5">
                 <h3 class="section-title mb-4">Update Stok</h3>
+                <form method="GET" action="{{ route('stocks.index') }}" class="mb-3">
+                    <div class="flex gap-2">
+                        <input type="search" name="product_search" value="{{ $search }}" placeholder="Cari produk untuk ubah stok..." class="form-input">
+                        <button class="btn-secondary whitespace-nowrap">Cari</button>
+                    </div>
+                </form>
+
                 <form method="POST" action="{{ route('stocks.store') }}" class="space-y-3">
                     @csrf
+                    <div class="flex flex-col gap-2">
                     <select name="product_id" required class="form-input">
                         <option value="">- Pilih produk -</option>
-                        @foreach (\App\Models\Product::orderBy('name')->get() as $product)
+                        @foreach ($products as $product)
                             <option value="{{ $product->id }}">{{ $product->name }} (stok: {{ $product->stock }})</option>
                         @endforeach
                     </select>

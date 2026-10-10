@@ -47,7 +47,7 @@
                                     <td class="table-td text-right">
                                         <input type="number" name="items[{{ $loop->index }}][sale_item_id]" value="{{ $row->item->id }}" class="hidden">
                                         <input type="number" name="items[{{ $loop->index }}][quantity]" min="0" max="{{ $row->available }}"
-                                               class="form-input !py-1 text-right" placeholder="0">
+                                               value="0" class="form-input !py-1 text-right" placeholder="0">
                                     </td>
                                 </tr>
                             @endforeach

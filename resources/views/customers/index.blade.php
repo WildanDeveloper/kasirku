@@ -59,7 +59,7 @@
                                     </td>
                                     <td class="table-td text-center">{{ $customer->sales_count }}</td>
                                     <td class="table-td text-right">
-                                        @php $sisa = $customer->outstanding(); @endphp
+                                        @php $sisa = (int) $customer->outstanding_sum; @endphp
                                         @if ($sisa > 0)
                                             <span class="font-bold text-amber-600">Rp {{ number_format($sisa, 0, ',', '.') }}</span>
                                         @else

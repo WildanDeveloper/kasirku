@@ -52,7 +52,7 @@ return new class extends Migration
         Schema::create('sale_returns', function (Blueprint $table) {
             $table->id();
             $table->foreignId('sale_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->unsignedInteger('subtotal')->default(0);
             $table->unsignedInteger('discount_share')->default(0);
             $table->unsignedInteger('voucher_share')->default(0);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Voucher;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class VoucherController extends Controller
 {
@@ -59,7 +60,13 @@ class VoucherController extends Controller
             'code' => ['required', 'string', 'max:50', 'unique:vouchers,code'.($voucher ? ','.$voucher->id : '')],
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:percent,fixed'],
-            'value' => ['required', 'integer', 'min:1'],
+            'value' => [
+                'required',
+                'integer',
+                'min:1',
+                // BUG-07: voucher persen di atas 100% akan membuat total negatif.
+                Rule::when($request->input('type') === 'percent', ['max:100']),
+            ],
             'min_purchase' => ['nullable', 'integer', 'min:0'],
             'quota' => ['nullable', 'integer', 'min:1'],
             'starts_at' => ['nullable', 'date'],
@@ -77,7 +84,7 @@ class VoucherController extends Controller
             'quota' => ($data['quota'] ?? null) !== null && ($data['quota'] ?? '') !== '' ? (int) $data['quota'] : null,
             'starts_at' => ($data['starts_at'] ?? null) ?: null,
             'expires_at' => ($data['expires_at'] ?? null) ?: null,
-            'is_active' => (bool) ($data['is_active'] ?? true),
+            'is_active' => (bool) ($data['is_active'] ?? false),
             'notes' => ($data['notes'] ?? null) ?: null,
         ];
     }

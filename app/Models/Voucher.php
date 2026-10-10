@@ -76,9 +76,14 @@ class Voucher extends Model
             return 0;
         }
 
-        return $this->type === 'percent'
-            ? (int) round($subtotal * $this->value / 100)
-            : min($this->value, $subtotal);
+        if ($this->type === 'percent') {
+            // Persentase dibatasi 100% walau data lama bernilai lebih besar.
+            $percent = min(100, max(0, $this->value));
+
+            return min($subtotal, (int) round($subtotal * $percent / 100));
+        }
+
+        return min($this->value, $subtotal);
     }
 
     public function label(): string

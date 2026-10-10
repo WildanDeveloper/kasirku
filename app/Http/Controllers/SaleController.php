@@ -34,6 +34,8 @@ class SaleController extends Controller
 
     public function pay(Request $request, Sale $sale)
     {
+        $this->authorizeTransaction($request, $sale);
+
         $data = $request->validate([
             'amount' => ['required', 'integer', 'min:1'],
             'payment_method' => ['required', 'in:cash,qris,debit'],
@@ -48,6 +50,7 @@ class SaleController extends Controller
             SalePayment::create([
                 'sale_id' => $sale->id,
                 'amount' => $amount,
+                'payment_method' => $data['payment_method'],
                 'user_id' => $request->user()->id,
             ]);
 
@@ -59,5 +62,15 @@ class SaleController extends Controller
         });
 
         return back()->with('success', 'Pembayaran utang dicatat: Rp '.number_format($amount, 0, ',', '.').'.');
+    }
+
+    /** Kasir hanya boleh menyentuh transaksinya sendiri; admin bebas. */
+    private function authorizeTransaction(Request $request, Sale $sale): void
+    {
+        abort_unless(
+            $sale->user_id === $request->user()->id || $request->user()->is_admin,
+            403,
+            'Transaksi ini milik kasir lain.'
+        );
     }
 }
