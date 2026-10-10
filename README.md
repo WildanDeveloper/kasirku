@@ -48,11 +48,21 @@ Login bawaan dari seeder:
 | `X-Frame-Options` | `SAMEORIGIN` (anti clickjacking) |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Permissions-Policy` | kamera hanya untuk origin sendiri (dipakai fitus scan barcode) |
-| `Content-Security-Policy` | `default-src 'self'`, tanpa object/frame eksternal |
+| `Content-Security-Policy` | dikirim oleh Laravel (middleware `AddContentSecurityPolicy`) dengan **nonce per-request** untuk script inline |
 
-CSP memakai `unsafe-eval` karena Alpine.js mengeksekusi expression, dan `unsafe-inline`
-untuk script/style inline di halaman. Untuk CSP ketat, Alpine bisa diganti ke build
-CSP-safe (`@alpinejs/csp`) plus nonce.
+Detail CSP yang dikirim:
+
+```
+default-src 'self'; script-src 'self' 'nonce-<random>' 'unsafe-eval';
+style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;
+connect-src 'self'; worker-src 'self' blob:; object-src 'none';
+base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+```
+
+`'unsafe-eval'` masih diperlukan karena Alpine.js mengeksekusi expression
+(`x-data`, `@click`, `x-text`), tapi `'unsafe-inline'` **sudah dihapus** untuk script:
+semua `<script>` inline diberi `nonce="{{ $cspNonce }}"`, dan atribut event inline
+(`onclick`/`onsubmit`) tidak lagi dipakai — semuanya dipindah ke Alpine atau helper.
 
 ## Struktur Database
 

@@ -255,7 +255,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ $cspNonce }}">
         function pos() {
             return {
                 products: @json($products),

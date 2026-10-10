@@ -11,7 +11,7 @@
         </div>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-5">
+    <div x-data class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-5">
         @if (session('success'))
             <div class="rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">{{ session('success') }}</div>
         @endif
@@ -103,7 +103,7 @@
                                 <span class="text-gray-600 truncate">{{ $cp->product->name ?? 'Produk #'.$cp->product_id }}</span>
                                 <span class="flex items-center gap-2 ml-2">
                                     <span class="font-semibold text-blue-600">Rp {{ number_format($cp->price, 0, ',', '.') }}</span>
-                                    <form method="POST" action="{{ route('customers.prices.destroy', [$customer, $cp]) }}" onsubmit="return confirm('Hapus harga khusus ini?')">
+                                    <form method="POST" action="{{ route('customers.prices.destroy', [$customer, $cp]) }}" @submit="if (! confirm('Hapus harga khusus ini?')) $event.preventDefault()">
                                         @csrf @method('DELETE')
                                         <button class="text-red-500 hover:text-red-700 text-xs font-bold">&times;</button>
                                     </form>

@@ -115,7 +115,7 @@
                                         Edit
                                     </a>
                                     <form method="POST" action="{{ route('products.destroy', $product) }}" class="inline"
-                                          onsubmit="return confirm('Hapus produk ini?')">
+                                          @submit="if (! confirm('Hapus produk ini?')) $event.preventDefault()">
                                         @csrf
                                         @method('DELETE')
                                         <button class="inline-flex items-center gap-1 text-sm font-semibold text-red-500 hover:text-red-700 ml-3">
@@ -186,7 +186,7 @@
                             class="btn-primary !bg-white !text-slate-900 hover:!bg-gray-100">Terapkan</button>
                     <button type="submit" x-show="action === 'delete'"
                             class="btn-danger"
-                            onclick="return confirm('Hapus ' + selected.length + ' produk terpilih?')">Hapus Terpilih</button>
+                            @submit="if (action === 'delete' && ! confirm('Hapus ' + selected.length + ' produk terpilih?')) $event.preventDefault()">Hapus Terpilih</button>
 
                     <button type="submit" form="label-form"
                             class="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 text-white text-sm font-semibold rounded-lg hover:bg-white/20 transition">

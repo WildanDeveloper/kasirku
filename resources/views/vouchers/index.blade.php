@@ -6,7 +6,7 @@
         </div>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-5">
+    <div x-data class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-5">
         @if (session('success'))
             <div class="rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">{{ session('success') }}</div>
         @endif
@@ -38,7 +38,7 @@
                                 <tr class="hover:bg-gray-50 align-top">
                                     <td class="table-td">
                                         <span class="font-mono font-bold text-gray-900">{{ $voucher->code }}</span>
-                                        <button type="button" onclick="navigator.clipboard?.writeText('{{ $voucher->code }}')"
+                                        <button type="button" @click="navigator.clipboard?.writeText('{{ $voucher->code }}')"
                                                 class="block text-[10px] text-emerald-600 hover:underline">salin</button>
                                     </td>
                                     <td class="table-td text-gray-600">{{ $voucher->name }}</td>
@@ -58,10 +58,10 @@
                                         <span class="text-xs font-semibold px-2 py-1 rounded-full {{ $statusClass }}">{{ $status }}</span>
                                     </td>
                                     <td class="table-td text-right whitespace-nowrap">
-                                        <button type="button" onclick="toggleEdit({{ $loop->index }})"
+                                        <button type="button" @click="document.getElementById('voucher-edit-{{ $loop->index }}').classList.toggle('hidden')"
                                                 class="text-xs font-semibold text-emerald-600 hover:underline">Edit</button>
                                         <form method="POST" action="{{ route('vouchers.destroy', $voucher) }}" class="inline"
-                                              onsubmit="return confirm('Hapus voucher {{ $voucher->code }}?')">
+                                              @submit="if (! confirm('Hapus voucher {{ $voucher->code }}?')) $event.preventDefault()">
                                             @csrf @method('DELETE')
                                             <button class="text-xs font-semibold text-red-500 hover:text-red-700">Hapus</button>
                                         </form>
@@ -141,9 +141,4 @@
         </div>
     </div>
 
-    <script>
-        function toggleEdit(index) {
-            document.getElementById('voucher-edit-' + index).classList.toggle('hidden');
-        }
-    </script>
 </x-app-layout>

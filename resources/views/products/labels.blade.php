@@ -9,14 +9,14 @@
         body { font-family: 'Figtree', system-ui, sans-serif; }
     </style>
 </head>
-<body class="label-print bg-white">
+<body class="label-print bg-white" x-data>
     <div class="max-w-5xl mx-auto">
         <div class="flex items-center justify-between mb-4 print:hidden">
             <div>
                 <h1 class="text-xl font-bold text-gray-900">Label Harga ({{ $products->count() }} produk)</h1>
                 <p class="text-sm text-gray-500">{{ $mode === 'wholesale' ? 'Harga Grosir' : 'Harga Ecer' }} · {{ $shop['name'] }}</p>
             </div>
-            <button onclick="window.print()" class="btn-primary">Cetak</button>
+            <button @click="window.print()" class="btn-primary">Cetak</button>
         </div>
 
         <div id="label-sheet" class="label-sheet">
@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ $cspNonce }}">
         window.addEventListener('load', () => {
             if (new URLSearchParams(location.search).get('print') === '1') {
                 setTimeout(() => window.print(), 300);
