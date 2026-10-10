@@ -834,4 +834,50 @@ class DomainTest extends TestCase
             'printer_width' => 'salah',
         ])->assertSessionHasErrors('printer_width');
     }
+
+    public function test_bar_versi_dan_halaman_apa_yang_baru_tampil(): void
+    {
+        $this->actingAs($this->admin)->get(route('pos.index'))->assertOk()->assertSee('Apa Yang Baru');
+
+        $this->actingAs($this->admin)->get(route('updates.index'))->assertOk()->assertSee('v'.config('kasirku.version'));
+
+        $this->actingAs($this->kasir)->get(route('updates.index'))->assertOk();
+    }
+
+    public function test_endpoint_status_memberi_informasi_versi(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'api.github.com/*' => \Illuminate\Support\Facades\Http::response(['tag_name' => 'v99.0.0']),
+        ]);
+
+        $response = $this->actingAs($this->admin)->getJson(route('updates.status'));
+
+        $response->assertOk()
+            ->assertJsonPath('current_version', config('kasirku.version'))
+            ->assertJsonPath('update_available', true);
+
+        $this->assertSame('99.0.0', $response->json('latest_version'));
+    }
+
+    public function test_kasir_tidak_bisa_menjalankan_pembaruan(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'api.github.com/*' => \Illuminate\Support\Facades\Http::response(['tag_name' => 'v99.0.0']),
+        ]);
+
+        $this->actingAs($this->kasir)->post(route('updates.apply'))->assertForbidden();
+    }
+
+    public function test_pembaruan_tidak_dijalankan_saat_tidak_ada_versi_baru(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'api.github.com/*' => \Illuminate\Support\Facades\Http::response(['tag_name' => 'v'.config('kasirku.version')]),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->from(route('updates.index'))
+            ->post(route('updates.apply'))
+            ->assertRedirect()
+            ->assertSessionHas('warning');
+    }
 }

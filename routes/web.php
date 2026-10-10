@@ -15,6 +15,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StockMovementController;
+use App\Http\Controllers\UpdateController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/shifts', [CashShiftController::class, 'index'])->name('shifts.index');
     Route::post('/shifts', [CashShiftController::class, 'open'])->name('shifts.open');
     Route::post('/shifts/{shift}/close', [CashShiftController::class, 'close'])->name('shifts.close');
+
+    // Versi aplikasi & pembaruan.
+    Route::get('/updates', [UpdateController::class, 'whatsNew'])->name('updates.index');
+    Route::get('/updates/status', [UpdateController::class, 'status'])->name('updates.status');
+    Route::post('/updates/apply', [UpdateController::class, 'apply'])->name('updates.apply');
 
     // Cek kode voucher dipakai kasir di halaman POS (BUG-16).
     Route::get('/vouchers/{code}/check', [VoucherController::class, 'check'])->name('vouchers.check');

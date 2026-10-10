@@ -15,11 +15,22 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 
+    /** Tanggal rilis versi berjalan, mis. "11 Oktober 2026". */
+    private function releasedAtLabel(): string
+    {
+        $date = config('kasirku.released_at');
+
+        return $date ? \Carbon\Carbon::parse($date)->translatedFormat('d F Y') : '';
+    }
+
     /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
+        View::share('appVersion', config('kasirku.version', '0.0.0'));
+        View::share('appReleasedAt', $this->releasedAtLabel());
+
         View::share('navItems', [
             ['Dashboard', 'dashboard', 'dashboard', 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z', false],
             ['Kasir', 'pos.index', 'pos.*', 'M6.75 3v9.75a3 3 0 0 0 3 3h4.5a3 3 0 0 0 3-3V3M6.75 3h10.5M6.75 3V2.25A.75.75 0 0 1 7.5 1.5h9a.75.75 0 0 1 .75.75V3m-12 18v-6.75M6 21h12m0 0V14.25', false],

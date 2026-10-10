@@ -72,6 +72,40 @@
                     </header>
                 @endisset
 
+                <!-- Bar versi: versi aplikasi, tombol update, dan apa yang baru -->
+                <div class="bg-slate-900 border-b border-slate-800">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-3"
+                         x-data="appVersion"
+                         data-status-url="{{ route('updates.status') }}"
+                         data-apply-url="{{ route('updates.apply') }}"
+                         data-whats-new-url="{{ route('updates.index') }}"
+                         data-can-update="{{ auth()->user()->is_admin ? '1' : '0' }}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Kasirku</span>
+                            <a href="{{ route('updates.index') }}" class="text-xs font-bold text-white hover:text-emerald-300 transition">v{{ $appVersion }}</a>
+                            <span class="hidden sm:inline text-[11px] text-slate-500">{{ $appReleasedAt }}</span>
+                            <span x-show="updateAvailable" x-cloak
+                                  class="text-[11px] font-semibold text-emerald-400">
+                                → v<span x-text="latestVersion"></span> tersedia
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button" x-show="updateAvailable && canUpdate" x-cloak @click="applyUpdate()"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-600 text-[11px] font-bold text-white hover:bg-emerald-500 transition">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m0 0 6-6m-6 6-6-6" />
+                                </svg>
+                                Perbarui
+                            </button>
+                            <a href="{{ route('updates.index') }}"
+                               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-800 text-[11px] font-bold text-slate-200 hover:bg-slate-700 transition">
+                                Apa Yang Baru
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Page Content -->
                 <main class="flex-1">
                     {{ $slot }}

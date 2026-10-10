@@ -1,6 +1,7 @@
 import Alpine from '@alpinejs/csp';
 import pos from './components/pos.js';
 import {
+    appVersion,
     bulkProducts,
     confirmSubmit,
     copyable,
@@ -26,6 +27,7 @@ Alpine.data('dropdown', dropdown);
 Alpine.data('modal', modal);
 Alpine.data('flash', flash);
 Alpine.data('bulkProducts', bulkProducts);
+Alpine.data('appVersion', appVersion);
 
 let qrLoader = null;
 

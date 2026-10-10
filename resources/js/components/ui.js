@@ -93,6 +93,58 @@ export function rowEditor() {
     };
 }
 
+/** Bar versi: cek versi baru di server dan jalankan pembaruan. */
+export function appVersion() {
+    return {
+        updateAvailable: false,
+        latestVersion: '',
+        canUpdate: false,
+        statusUrl: '',
+        applyUrl: '',
+        whatsNewUrl: '/',
+
+        init() {
+            this.statusUrl = this.$root.dataset.statusUrl ?? '';
+            this.applyUrl = this.$root.dataset.applyUrl ?? '';
+            this.whatsNewUrl = this.$root.dataset.whatsNewUrl ?? '/';
+            this.canUpdate = this.$root.dataset.canUpdate === '1';
+
+            this.check();
+        },
+
+        async check() {
+            if (!this.statusUrl) return;
+
+            try {
+                const response = await fetch(this.statusUrl, { headers: { Accept: 'application/json' } });
+                if (!response.ok) return;
+
+                const data = await response.json();
+                this.updateAvailable = !!data.update_available;
+                this.latestVersion = data.latest_version ?? '';
+            } catch (e) {
+                // Offline / API GitHub tak terjangkau: sembunyikan tombol update.
+            }
+        },
+
+        applyUpdate() {
+            if (!confirm('Perbarui aplikasi ke versi ' + this.latestVersion + '?\n\nHalaman mungkin sempat tidak tersedia selama proses.')) {
+                return;
+            }
+
+            this.updateAvailable = false;
+            this.$root.dispatchEvent(new CustomEvent('kasirku:apply-update', { bubbles: true }));
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = this.applyUrl;
+            form.innerHTML = '<input type="hidden" name="_token" value="' + document.querySelector('meta[name=csrf-token]').content + '">';
+            document.body.appendChild(form);
+            form.submit();
+        },
+    };
+}
+
 /** Dropdown Breeze. */
 export function dropdown() {
     return {
