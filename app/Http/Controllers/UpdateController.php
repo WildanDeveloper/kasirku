@@ -41,6 +41,7 @@ class UpdateController extends Controller
     private function permissionIssues(): array
     {
         $issues = [];
+        $currentUid = function_exists('posix_geteuid') ? posix_geteuid() : getmyuid();
 
         foreach (['.git', 'node_modules', 'vendor', 'storage'] as $folder) {
             $path = base_path($folder);
@@ -54,7 +55,8 @@ class UpdateController extends Controller
             );
 
             foreach ($iterator as $file) {
-                if ($file->getOwner() !== 'www-data') {
+                // Bandingkan UID: getOwner() mengembalikan nama atau nomor, tergantung filesystem.
+                if ((int) $file->getUid() !== (int) $currentUid) {
                     $issues[] = $folder.'/'.trim(str_replace(base_path(), '', $file->getPathname()), '/');
 
                     if (count($issues) >= 6) {
